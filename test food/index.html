@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ReServe - comidas para retirada</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="hero-card">
+        <h1>ReServe</h1>
+        <p>Sem desperdicios, todos ganham.</p>
+      </div>
+      <div class="top-bar">
+        <div class="location">
+          <span>Joao Pessoa, PB</span>
+          <span class="top-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 4.5 6 12 6 12s6-7.5 6-12a6 6 0 0 0-6-6zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>
+          </span>
+        </div>
+        <label class="search">
+          <input type="text" id="search-input" placeholder="Pesquisar restaurante ou refeicao" />
+          <span class="top-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M10 2a8 8 0 0 1 6.32 12.9l4.39 4.4-1.41 1.4-4.4-4.39A8 8 0 1 1 10 2zm0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z"/></svg>
+          </span>
+        </label>
+      </div>
+    </header>
+
+    <section class="section" id="marketplace">
+      <h2>Restaurantes perto de voce</h2>
+      <div class="categories">
+        <h3>Categorias</h3>
+        <div class="category-row" id="category-row">
+          <div class="category active" data-category="Todos">
+            <span class="icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 3a7 7 0 1 1-7 7 7 7 0 0 1 7-7z"/></svg>
+            </span>
+            Todos
+          </div>
+          <div class="category" data-category="Padaria">
+            <span class="icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12c2-5 10-8 16-7-2 6-7 12-12 13-2 1-4-1-4-3 0-1 0-2 0-3z"/></svg>
+            </span>
+            Padaria
+          </div>
+          <div class="category" data-category="Refeicoes">
+            <span class="icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v2H4zm1 4h14l-2 9H7zM9 3h2v3H9zm4 0h2v3h-2z"/></svg>
+            </span>
+            Refeicoes
+          </div>
+          <div class="category" data-category="Mercados">
+            <span class="icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10l1 6H6zm1 8h8v10H8z"/></svg>
+            </span>
+            Mercados
+          </div>
+          <div class="category" data-category="Vegetariano">
+            <span class="icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10c4-6 10-6 12 0-1 6-5 10-6 10S7 16 6 10z"/></svg>
+            </span>
+            Vegetariano
+          </div>
+          <div class="category" data-category="Doces">
+            <span class="icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9c2-4 6-6 10-6s6 4 6 7-4 8-8 8S4 14 4 9zm4 3h8v2H8z"/></svg>
+            </span>
+            Doces
+          </div>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="selector" id="restaurant-list"></div>
+      </div>
+    </section>
+
+    <section class="section hidden" id="restaurant-detail">
+      <div class="card">
+        <div class="modal-header">
+          <button class="back" id="back-button">Voltar</button>
+          <div>
+            <h3 id="detail-title">Refeicoes</h3>
+            <span class="chip-now" id="detail-chip">Disponivel agora</span>
+          </div>
+        </div>
+        <div id="detail-meal-list"></div>
+      </div>
+    </section>
+
+    <section class="section" id="admin">
+      <h2>Admin</h2>
+      <div class="card">
+        <h3>Registrar restaurante</h3>
+        <form class="form" id="admin-form">
+          <input type="text" id="r-name" placeholder="Nome do restaurante" required />
+          <input type="text" id="r-neighborhood" placeholder="Bairro" required />
+          <input type="text" id="meal-name" placeholder="Nome da refeicao" required />
+          <input type="number" id="meal-price" placeholder="Preco promocional (R$)" min="1" step="0.5" required />
+          <input type="number" id="meal-original" placeholder="Preco original (R$)" min="1" step="0.5" required />
+          <button class="btn" type="submit">Adicionar oferta</button>
+        </form>
+        <p><small>Registros ficam no navegador (localStorage). Use este MVP para apresentar a ideia.</small></p>
+      </div>
+    </section>
+
+    <footer class="footer">
+      MVP demonstrativo. Sem integracao real de pagamento ou QR.
+    </footer>
+  </div>
+
+  <div class="modal" id="meal-modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="modal-title" class="modal-title">Refeicoes</h3>
+          <span class="chip-now">Disponivel agora</span>
+        </div>
+        <button class="back" id="close-modal">Fechar</button>
+      </div>
+      <div id="modal-meal-list"></div>
+      <div class="modal-actions">
+        <button class="btn" id="pay-now">Pagar agora</button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav" id="bottom-nav">
+    <button class="active" id="nav-discover">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 7-1 1-2-1v9h-5v-6H11v6H6v-9l-2 1-1-1z"/></svg>
+      Descobrir
+    </button>
+    <button id="nav-favorites">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 6-7 10-7 10z"/></svg>
+      Favoritos
+    </button>
+    <button class="nav-item" id="nav-orders">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h10l1 12H6zm3 3h4v2h-4zm-1 4h6v2H9z"/></svg>
+      Pedidos
+      <span class="nav-badge" id="orders-badge">0</span>
+    </button>
+    <button id="nav-profile">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm-7 9c0-4 3-7 7-7s7 3 7 7"/></svg>
+      Perfil
+    </button>
+  </nav>
+
+  <div class="modal" id="orders-modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Pedidos</h3>
+        <button class="back modal-close" data-close="orders-modal">Fechar</button>
+      </div>
+      <div class="modal-body" id="orders-list"></div>
+      <div class="modal-actions" id="orders-actions">
+        <button class="btn" id="go-to-checkout">Ir para pagamento</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="payment-modal" aria-hidden="true">
+    <div class="modal-card payment-modal-card">
+      <div class="modal-header">
+        <h3>Pagamento</h3>
+        <button class="back modal-close" data-close="payment-modal">Fechar</button>
+      </div>
+      <div class="modal-body">
+        <div class="card payment-summary">
+          <h3>Resumo do pedido</h3>
+          <div id="payment-summary"></div>
+        </div>
+        <div class="payment-methods">
+          <h3>Metodo de pagamento</h3>
+          <div class="method-tabs">
+            <button class="method-tab active" data-method="pix">Pix</button>
+            <button class="method-tab" data-method="card">Cartao</button>
+            <button class="method-tab" data-method="gpay">Google Pay</button>
+            <button class="method-tab" data-method="apay">Apple Pay</button>
+          </div>
+          <div class="method-panel active" data-panel="pix">
+            <div class="list-item">
+              <strong>Pix</strong>
+              <div class="pix-options">
+                <button class="btn secondary pix-option active" data-pix="code">Copia e cola</button>
+                <button class="btn secondary pix-option" data-pix="qr">QR Code</button>
+              </div>
+              <div class="pix-panel active" data-pix-panel="code">
+                <div class="pix-code" id="pix-code">00020126360014BR.GOV.BCB.PIX0111reserve00052040000530398654045.005802BR5920ReServe Pagamento6009Joao Pessoa62070503***6304ABCD</div>
+                <button class="btn secondary" id="copy-pix">Copiar codigo</button>
+                <small id="pix-feedback"></small>
+              </div>
+              <div class="pix-panel" data-pix-panel="qr">
+                <div class="pix-qr" id="pix-qr">
+                  <div class="fake-qr" id="pix-qr-grid"></div>
+                  <small>Escaneie com seu banco para pagar.</small>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="method-panel" data-panel="card">
+            <div class="list-item">
+              <strong>Cartao de credito</strong>
+              <div class="form">
+                <input type="text" placeholder="Numero do cartao" />
+                <input type="text" placeholder="Nome no cartao" />
+                <div class="row">
+                  <input type="text" placeholder="Validade" />
+                  <input type="text" placeholder="CVV" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="method-panel" data-panel="gpay">
+            <div class="list-item">
+              <strong>Google Pay</strong>
+              <p><small>Finalize com sua conta Google vinculada.</small></p>
+              <button class="btn">Continuar com Google Pay</button>
+            </div>
+          </div>
+          <div class="method-panel" data-panel="apay">
+            <div class="list-item">
+              <strong>Apple Pay</strong>
+              <p><small>Finalize com seu dispositivo Apple.</small></p>
+              <button class="btn">Continuar com Apple Pay</button>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn" id="confirm-payment">Confirmar pagamento</button>
+          </div>
+          <div class="payment-success" id="payment-success">
+            <div>Pagamento aprovado! Seu QR esta em Pedidos.</div>
+            <button class="btn secondary" id="view-qr">Fechar e ver QR</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="profile-modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Perfil</h3>
+        <button class="back modal-close" data-close="profile-modal">Fechar</button>
+      </div>
+      <div class="modal-body" id="profile-content"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="map-modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Abrir no mapa</h3>
+        <button class="back modal-close" data-close="map-modal">Fechar</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-actions">
+          <a class="btn secondary map-link" id="map-google" target="_blank" rel="noreferrer">Google Maps</a>
+          <a class="btn secondary map-link" id="map-apple" target="_blank" rel="noreferrer">Apple Maps</a>
+          <a class="btn secondary map-link" id="map-waze" target="_blank" rel="noreferrer">Waze</a>
+        </div>
+        <small>Se o app estiver instalado, ele abrira direto.</small>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
