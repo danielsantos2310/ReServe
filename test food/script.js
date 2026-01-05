@@ -1,4 +1,4 @@
-const defaultMeals = [
+﻿const defaultMeals = [
   {
     id: 1,
     restaurant: "Bistro do Porto",
@@ -58,6 +58,11 @@ const categoryList = ["Padaria", "Refeicoes", "Mercados", "Vegetariano", "Doces"
 
 const storageKey = "reserve-meals";
 const favoritesKey = "reserve-favorites";
+const restaurantMealsKey = "reserve-restaurant-meals";
+const restaurantOrdersKey = "reserve-restaurant-orders";
+const restaurantProfileKey = "reserve-restaurant-profile";
+const adminPendingKey = "reserve-admin-pending";
+const adminApprovedKey = "reserve-admin-approved";
 
 const state = {
   meals: loadMeals(),
@@ -68,14 +73,22 @@ const state = {
   activeCategory: "Todos",
   showFavoritesOnly: false,
   paymentMethod: "pix",
-  paidOrders: []
+  paidOrders: [],
+  role: "client",
+  restaurantProfile: loadRestaurantProfile(),
+  confirmOrderLineId: null
 };
 
 const restaurantCategories = new Map();
+let restaurantAllergens = [];
 
 function loadMeals() {
   const saved = localStorage.getItem(storageKey);
-  if (!saved) return defaultMeals;
+  if (!saved) return defaultMeals.map(meal => ({
+    ...meal,
+    ingredients: demoIngredients(meal.name),
+    allergens: demoAllergens(meal.name)
+  }));
   try {
     const parsed = JSON.parse(saved);
     return Array.isArray(parsed) ? parsed : defaultMeals;
@@ -86,6 +99,108 @@ function loadMeals() {
 
 function saveMeals() {
   localStorage.setItem(storageKey, JSON.stringify(state.meals));
+}
+
+function loadRestaurantMeals() {
+  const saved = localStorage.getItem(restaurantMealsKey);
+  if (!saved) return [];
+  try {
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRestaurantMeals(meals) {
+  localStorage.setItem(restaurantMealsKey, JSON.stringify(meals));
+}
+
+function loadRestaurantProfile() {
+  const saved = localStorage.getItem(restaurantProfileKey);
+  if (!saved) return { name: "Restaurante Demo", neighborhood: "Centro" };
+  try {
+    const parsed = JSON.parse(saved);
+    return parsed && typeof parsed === 'object'
+      ? parsed
+      : { name: "Restaurante Demo", neighborhood: "Centro" };
+  } catch {
+    return { name: "Restaurante Demo", neighborhood: "Centro" };
+  }
+}
+
+function saveRestaurantProfile(profile) {
+  localStorage.setItem(restaurantProfileKey, JSON.stringify(profile));
+}
+
+function loadAdminPending() {
+  const saved = localStorage.getItem(adminPendingKey);
+  if (!saved) {
+    const seed = [
+      { id: 201, name: 'Sabor da Vila', neighborhood: 'Tambau' },
+      { id: 202, name: 'Cantinho Mineiro', neighborhood: 'Manaira' }
+    ];
+    localStorage.setItem(adminPendingKey, JSON.stringify(seed));
+    return seed;
+  }
+  try {
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveAdminPending(list) {
+  localStorage.setItem(adminPendingKey, JSON.stringify(list));
+}
+
+function loadAdminApproved() {
+  const saved = localStorage.getItem(adminApprovedKey);
+  if (!saved) return [];
+  try {
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveAdminApproved(list) {
+  localStorage.setItem(adminApprovedKey, JSON.stringify(list));
+}
+
+function getAllMeals() {
+  const restaurantMeals = loadRestaurantMeals();
+  const enriched = restaurantMeals.map(meal => ({
+    ...meal,
+    restaurant: meal.restaurant || state.restaurantProfile.name,
+    neighborhood: meal.neighborhood || state.restaurantProfile.neighborhood
+  }));
+  return [...state.meals, ...enriched];
+}
+
+function loadRestaurantOrders() {
+  const saved = localStorage.getItem(restaurantOrdersKey);
+  if (!saved) {
+    const seed = [
+      { id: 1001, name: 'Marina Lopes', meal: 'Prato do dia mediterraneo', status: 'preparando', history: [] },
+      { id: 1002, name: 'Joao Silva', meal: 'Combo executivo', status: 'novo', history: [] },
+      { id: 1003, name: 'Carla Mendes', meal: 'Bowl vegetariano', status: 'pronto', history: [] }
+    ];
+    localStorage.setItem(restaurantOrdersKey, JSON.stringify(seed));
+    return seed;
+  }
+  try {
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRestaurantOrders(orders) {
+  localStorage.setItem(restaurantOrdersKey, JSON.stringify(orders));
 }
 
 function loadFavorites() {
@@ -117,9 +232,28 @@ function availabilityLabel() {
   return "Disponivel agora";
 }
 
+function demoIngredients(name) {
+  const key = name.toLowerCase();
+  if (key.includes('mediterraneo')) return 'frango, arroz, tomate, azeitona, ervas';
+  if (key.includes('executivo')) return 'carne, arroz, feijao, batata, salada';
+  if (key.includes('massa')) return 'massa, molho de tomate, queijo, manjericao';
+  if (key.includes('bowl')) return 'quinoa, grao de bico, cenoura, abobrinha';
+  if (key.includes('cafe')) return 'cafe, leite, farinha, acucar, ovos';
+  return 'ingredientes variados';
+}
+
+function demoAllergens(name) {
+  const key = name.toLowerCase();
+  if (key.includes('massa')) return ['Gluten', 'Lactose'];
+  if (key.includes('executivo')) return ['Gluten'];
+  if (key.includes('cafe')) return ['Lactose', 'Ovos', 'Gluten'];
+  if (key.includes('mediterraneo')) return ['Gluten'];
+  return [];
+}
+
 function uniqueRestaurants() {
   const map = new Map();
-  state.meals.forEach(meal => {
+  getAllMeals().forEach(meal => {
     if (!map.has(meal.restaurant)) {
       map.set(meal.restaurant, {
         name: meal.restaurant,
@@ -141,7 +275,7 @@ function assignCategories() {
 
 function restaurantCounts() {
   const counts = new Map();
-  state.meals.forEach(meal => {
+  getAllMeals().forEach(meal => {
     counts.set(meal.restaurant, (counts.get(meal.restaurant) || 0) + 1);
   });
   return counts;
@@ -152,7 +286,7 @@ function restaurantMatches(rest, query) {
   const q = query.toLowerCase();
   if (rest.name.toLowerCase().includes(q)) return true;
   if (rest.neighborhood.toLowerCase().includes(q)) return true;
-  return state.meals.some(meal =>
+  return getAllMeals().some(meal =>
     meal.restaurant === rest.name && meal.name.toLowerCase().includes(q)
   );
 }
@@ -170,6 +304,29 @@ function mealMatches(meal, query) {
     meal.restaurant.toLowerCase().includes(q) ||
     meal.neighborhood.toLowerCase().includes(q)
   );
+}
+
+function allergenLetter(value) {
+  const normalized = value.toLowerCase();
+  if (normalized.includes('gluten')) return 'G';
+  if (normalized.includes('lactose')) return 'L';
+  if (normalized.includes('castanha')) return 'C';
+  if (normalized.includes('ovo')) return 'O';
+  if (normalized.includes('fruto do mar') || normalized.includes('mar')) return 'F';
+  return value.trim().charAt(0).toUpperCase() || '?';
+}
+
+function renderAllergenChips() {
+  const container = document.getElementById('allergen-chips');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!restaurantAllergens.length) return;
+  restaurantAllergens.forEach(item => {
+    const chip = document.createElement('span');
+    chip.className = 'allergen-chip';
+    chip.innerHTML = `${item}<button type="button" data-item="${item}">x</button>`;
+    container.appendChild(chip);
+  });
 }
 
 function toggleFavorite(name) {
@@ -198,6 +355,113 @@ function updateOrdersBadge() {
   badge.style.display = count ? 'inline-block' : 'none';
 }
 
+function renderRestaurantMeals() {
+  const container = document.getElementById('restaurant-meals');
+  if (!container) return;
+  const meals = loadRestaurantMeals();
+  if (!meals.length) {
+    container.innerHTML = '<p><small>Nenhuma refeicao publicada.</small></p>';
+    return;
+  }
+  container.innerHTML = '';
+  meals.forEach(meal => {
+    const row = document.createElement('div');
+    row.className = 'list-item';
+    const allergens = Array.isArray(meal.allergens) && meal.allergens.length
+      ? meal.allergens.join(', ')
+      : 'Nenhum';
+    row.innerHTML = `
+      <strong>${meal.name}</strong>
+      <div><small>De ${formatBRL(meal.original)} por ${formatBRL(meal.price)}</small></div>
+      <div><small>Disponivel: ${meal.available}</small></div>
+      <div><small>Ingredientes: ${meal.ingredients || 'Nao informado'}</small></div>
+      <div><small>Alergenos: ${allergens}</small></div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function renderRestaurantOrders() {
+  const container = document.getElementById('restaurant-orders');
+  if (!container) return;
+  const orders = loadRestaurantOrders();
+  let changed = false;
+  orders.forEach(order => {
+    if (!order.lineId) {
+      const safe = String(order.meal || 'item').toLowerCase().replace(/\s+/g, '-');
+      order.lineId = `${order.id}-${safe}`;
+      changed = true;
+    }
+  });
+  if (changed) saveRestaurantOrders(orders);
+  container.innerHTML = '';
+  orders.forEach(order => {
+    const row = document.createElement('div');
+    row.className = 'list-item';
+    const statusClass = order.status === 'pronto' || order.status === 'retirado'
+      ? 'status-ready'
+      : order.status === 'preparando'
+        ? 'status-prep'
+        : '';
+    const history = Array.isArray(order.history) ? order.history : [];
+    const historyHtml = history.length
+      ? history.map(item => `<div>${item.time} - ${item.status}</div>`).join('')
+      : '<div>Sem atualizacoes</div>';
+    row.innerHTML = `
+      <strong>Pedido #${order.id}</strong>
+      <div><small>${order.name}</small></div>
+      <div><small>${order.meal}</small></div>
+      <span class="status-pill ${statusClass}">${order.status}</span>
+      <div class="status-history"><small>Historico</small>${historyHtml}</div>
+      <div class="modal-actions">
+        <button class="btn secondary order-status" data-line-id="${order.lineId}" data-status="preparando">Preparando</button>
+        <button class="btn secondary order-status" data-line-id="${order.lineId}" data-status="pronto">Pronto</button>
+        <button class="btn order-status" data-line-id="${order.lineId}" data-status="retirado">Confirmar retirada</button>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function renderAdminDashboard() {
+  const metrics = document.getElementById('admin-metrics');
+  const approvals = document.getElementById('admin-approvals');
+  if (!metrics || !approvals) return;
+
+  const restaurants = uniqueRestaurants();
+  const pending = loadAdminPending();
+  const approved = loadAdminApproved();
+
+  metrics.innerHTML = '';
+  const metricItems = [
+    { label: 'Restaurantes ativos', value: restaurants.length },
+    { label: 'Refeicoes no feed', value: getAllMeals().length },
+    { label: 'Pedidos pagos', value: state.paidOrders.length },
+    { label: 'Pendentes', value: pending.length },
+    { label: 'Aprovados', value: approved.length }
+  ];
+  metricItems.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'admin-metric';
+    card.innerHTML = `<strong>${item.value}</strong><small>${item.label}</small>`;
+    metrics.appendChild(card);
+  });
+
+  approvals.innerHTML = '';
+  pending.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'list-item';
+    row.innerHTML = `
+      <strong>${item.name}</strong>
+      <div><small>${item.neighborhood}</small></div>
+      <div class="admin-actions">
+        <button class="btn secondary admin-action" data-id="${item.id}" data-action="reject">Rejeitar</button>
+        <button class="btn admin-action" data-id="${item.id}" data-action="approve">Aprovar</button>
+      </div>
+    `;
+    approvals.appendChild(row);
+  });
+}
 function hashSeed(seed) {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
@@ -236,7 +500,7 @@ function renderPaymentSummary() {
         <div class="list-item">
           <strong>${item.name}</strong>
           <div><small>${item.restaurant}</small></div>
-          <div><small>Qtd: ${item.qty} • ${formatBRL(item.price * item.qty)}</small></div>
+          <div><small>Qtd: ${item.qty} - ${formatBRL(item.price * item.qty)}</small></div>
         </div>
       `).join('')}
     </div>
@@ -273,7 +537,7 @@ function closeOverlayModal(id) {
 }
 
 function closeAllOverlayModals() {
-  ['orders-modal', 'profile-modal', 'payment-modal'].forEach(closeOverlayModal);
+  ['orders-modal', 'profile-modal', 'payment-modal', 'map-modal', 'login-modal', 'restaurant-confirm-modal'].forEach(closeOverlayModal);
 }
 
 function setActiveNav(id) {
@@ -333,7 +597,7 @@ function renderOrdersModal() {
   } else {
     state.paidOrders.forEach(order => {
       const itemsHtml = order.items.map(item => `
-        <div><small>${item.qty}x ${item.name} — ${formatBRL(item.price * item.qty)}</small></div>
+        <div><small>${item.qty}x ${item.name} - ${formatBRL(item.price * item.qty)}</small></div>
       `).join('');
       const row = document.createElement('div');
       row.className = 'list-item';
@@ -463,7 +727,7 @@ function renderRestaurants() {
 function renderMeals(containerId) {
   const container = document.getElementById(containerId);
   container.innerHTML = '';
-  const meals = state.meals.filter(meal =>
+  const meals = getAllMeals().filter(meal =>
     meal.restaurant === state.selectedRestaurant && mealMatches(meal, state.searchQuery)
   );
   if (!meals.length) {
@@ -476,15 +740,27 @@ function renderMeals(containerId) {
     const inCart = countInCart(meal.id);
     const remaining = Math.max(0, (meal.available || 1) - inCart);
     const disabled = remaining === 0;
+    const shortIngredients = meal.ingredients
+      ? meal.ingredients.slice(0, 60) + (meal.ingredients.length > 60 ? '...' : '')
+      : 'Ingredientes nao informados';
+    const allergens = Array.isArray(meal.allergens) ? meal.allergens : [];
+    const allergenIcons = allergens.length
+      ? allergens.map(item => `<span class="allergen-icon" title="${item}">${allergenLetter(item)}</span>`).join('')
+      : '';
     const row = document.createElement('div');
     row.className = 'meal';
     row.innerHTML = `
-      <div class="meal-thumb" style="${image ? `background-image: url('${encodeURI(image)}');` : 'background: linear-gradient(135deg, #f8d9b6, #f1c373);'}"></div>
+      <div class="meal-thumb" style="${meal.image ? `background-image: url('${meal.image}');` : image ? `background-image: url('${encodeURI(image)}');` : 'background: linear-gradient(135deg, #f8d9b6, #f1c373);'}"></div>
       <div>
         <strong>${meal.name}</strong>
         <div><small>${meal.restaurant} - ${meal.neighborhood}</small></div>
         <div><small>Retire ate ${pickupLimit()}</small></div>
         <div><small>De ${formatBRL(meal.original)} por ${formatBRL(meal.price)}</small></div>
+        <div class="ingredient-line">
+          <span>Ingredientes: ${shortIngredients}</span>
+          <span class="info-icon" data-tip="${meal.ingredients || 'Nao informado'}">i</span>
+        </div>
+        ${allergenIcons ? `<div class="allergen-icons">${allergenIcons}</div>` : ''}
         <div><small>Disponiveis: ${remaining}</small></div>
         <div><span class="chip-now">${availabilityLabel()}</span></div>
       </div>
@@ -516,7 +792,7 @@ function groupCartItems() {
 }
 
 function addToCart(id) {
-  const meal = state.meals.find(item => item.id === id);
+  const meal = getAllMeals().find(item => item.id === id);
   if (!meal) return;
   const available = meal.available || 1;
   const inCart = countInCart(id);
@@ -610,11 +886,23 @@ document.getElementById('admin-form').addEventListener('submit', event => {
 
 function updateRoute() {
   const isAdmin = window.location.hash === '#admin';
+  const isRestaurant = window.location.hash === '#restaurant';
+  const showUser = !isAdmin && !isRestaurant;
+
   document.getElementById('admin').style.display = isAdmin ? 'block' : 'none';
-  document.getElementById('marketplace').style.display = isAdmin ? 'none' : 'block';
-  document.getElementById('bottom-nav').style.display = isAdmin ? 'none' : 'grid';
-  if (isAdmin) {
+  document.getElementById('admin-dashboard').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('restaurant-dashboard').style.display = isRestaurant ? 'block' : 'none';
+  document.getElementById('marketplace').style.display = showUser ? 'block' : 'none';
+  document.getElementById('bottom-nav').style.display = showUser ? 'grid' : 'none';
+  if (!showUser) {
     document.getElementById('restaurant-detail').classList.add('hidden');
+  }
+  if (isRestaurant) {
+    renderRestaurantMeals();
+    renderRestaurantOrders();
+  }
+  if (isAdmin) {
+    renderAdminDashboard();
   }
 }
 
@@ -646,7 +934,7 @@ document.querySelectorAll('.modal-close').forEach(button => {
   });
 });
 
-['orders-modal', 'profile-modal', 'payment-modal', 'map-modal'].forEach(id => {
+['orders-modal', 'profile-modal', 'payment-modal', 'map-modal', 'login-modal', 'restaurant-confirm-modal'].forEach(id => {
   const modal = document.getElementById(id);
   modal.addEventListener('click', event => {
     if (event.target.id === id) closeOverlayModal(id);
@@ -719,6 +1007,24 @@ document.getElementById('confirm-payment').addEventListener('click', () => {
   if (!state.cart.length) return;
   const order = createPaidOrder();
   state.paidOrders.unshift(order);
+  const restaurantOrders = loadRestaurantOrders();
+  order.items.forEach(item => {
+    const lineId = `${order.id}-${item.id}`;
+    restaurantOrders.unshift({
+      id: order.id,
+      lineId,
+      name: 'Cliente Demo',
+      meal: item.name,
+      status: 'novo',
+      history: [
+        {
+          status: 'novo',
+          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        }
+      ]
+    });
+  });
+  saveRestaurantOrders(restaurantOrders);
   state.cart = [];
   updateOrdersBadge();
   renderOrdersModal();
@@ -747,6 +1053,158 @@ document.addEventListener('click', event => {
   apple.href = `https://maps.apple.com/?q=${query}`;
   waze.href = `https://waze.com/ul?ll=${query}&navigate=yes`;
   openOverlayModal('map-modal');
+});
+
+document.addEventListener('click', event => {
+  const statusButton = event.target.closest('.order-status');
+  if (!statusButton) return;
+  const lineId = statusButton.dataset.lineId;
+  const status = statusButton.dataset.status;
+  if (status === 'retirado') {
+    state.confirmOrderLineId = lineId;
+    const order = loadRestaurantOrders().find(item => item.lineId === lineId);
+    const label = order ? `Pedido #${order.id} - ${order.meal}` : 'Pedido';
+    document.getElementById('confirm-order-text').textContent = label;
+    openOverlayModal('restaurant-confirm-modal');
+    return;
+  }
+  const orders = loadRestaurantOrders();
+  const target = orders.find(order => order.lineId === lineId);
+  if (!target) return;
+  const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  target.status = status;
+  target.history = Array.isArray(target.history) ? target.history : [];
+  target.history.unshift({ status, time });
+  saveRestaurantOrders(orders);
+  renderRestaurantOrders();
+});
+
+document.getElementById('open-login').addEventListener('click', () => {
+  openOverlayModal('login-modal');
+});
+
+document.getElementById('login-role').addEventListener('change', event => {
+  const fields = document.getElementById('restaurant-fields');
+  fields.classList.toggle('hidden', event.target.value !== 'restaurant');
+});
+
+document.getElementById('add-allergen').addEventListener('click', () => {
+  const input = document.getElementById('r-meal-allergen');
+  const value = input.value.trim();
+  if (!value) return;
+  if (!restaurantAllergens.includes(value)) {
+    restaurantAllergens.push(value);
+    renderAllergenChips();
+  }
+  input.value = '';
+});
+
+document.getElementById('r-meal-allergen').addEventListener('keydown', event => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    document.getElementById('add-allergen').click();
+  }
+});
+
+document.getElementById('allergen-chips').addEventListener('click', event => {
+  const button = event.target.closest('button');
+  if (!button) return;
+  const item = button.dataset.item;
+  restaurantAllergens = restaurantAllergens.filter(value => value !== item);
+  renderAllergenChips();
+});
+
+document.getElementById('login-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const role = document.getElementById('login-role').value;
+  state.role = role;
+  if (role === 'restaurant') {
+    const name = document.getElementById('login-restaurant-name').value.trim() || 'Restaurante Demo';
+    const neighborhood = document.getElementById('login-restaurant-neighborhood').value.trim() || 'Centro';
+    state.restaurantProfile = { name, neighborhood };
+    saveRestaurantProfile(state.restaurantProfile);
+  }
+  closeOverlayModal('login-modal');
+  if (role === 'restaurant') {
+    window.location.hash = '#restaurant';
+  } else if (role === 'admin') {
+    window.location.hash = '#admin';
+  } else {
+    window.location.hash = '';
+  }
+});
+
+document.addEventListener('click', event => {
+  const adminButton = event.target.closest('.admin-action');
+  if (!adminButton) return;
+  const id = Number(adminButton.dataset.id);
+  const action = adminButton.dataset.action;
+  const pending = loadAdminPending();
+  const approved = loadAdminApproved();
+  const target = pending.find(item => item.id === id);
+  if (!target) return;
+  const updatedPending = pending.filter(item => item.id !== id);
+  saveAdminPending(updatedPending);
+  if (action === 'approve') {
+    approved.unshift(target);
+    saveAdminApproved(approved);
+  }
+  renderAdminDashboard();
+});
+
+document.getElementById('confirm-by-number').addEventListener('click', () => {
+  if (!state.confirmOrderLineId) return;
+  const orders = loadRestaurantOrders();
+  const target = orders.find(order => order.lineId === state.confirmOrderLineId);
+  if (!target) return;
+  const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  target.status = 'retirado';
+  target.history = Array.isArray(target.history) ? target.history : [];
+  target.history.unshift({ status: 'retirado', time });
+  saveRestaurantOrders(orders);
+  renderRestaurantOrders();
+  closeOverlayModal('restaurant-confirm-modal');
+  state.confirmOrderLineId = null;
+});
+
+document.getElementById('confirm-by-qr').addEventListener('click', () => {
+  document.getElementById('confirm-by-number').click();
+});
+
+document.getElementById('restaurant-meal-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const imageInput = document.getElementById('r-meal-image');
+  const file = imageInput.files[0];
+  const readFile = file
+    ? new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      })
+    : Promise.resolve('');
+
+  readFile.then(imageData => {
+    const meal = {
+      id: Date.now(),
+      restaurant: state.restaurantProfile.name,
+      neighborhood: state.restaurantProfile.neighborhood,
+      name: document.getElementById('r-meal-name').value.trim(),
+      ingredients: document.getElementById('r-meal-ingredients').value.trim(),
+      allergens: restaurantAllergens,
+      image: imageData,
+      price: Number(document.getElementById('r-meal-price').value),
+      original: Number(document.getElementById('r-meal-original').value),
+      available: Number(document.getElementById('r-meal-available').value)
+    };
+    const meals = loadRestaurantMeals();
+    meals.unshift(meal);
+    saveRestaurantMeals(meals);
+    renderRestaurantMeals();
+    renderRestaurants();
+    restaurantAllergens = [];
+    renderAllergenChips();
+    event.target.reset();
+  });
 });
 
 document.getElementById('copy-pix').addEventListener('click', async () => {
@@ -789,3 +1247,4 @@ updateOrdersBadge();
 setPaymentMethod(state.paymentMethod);
 updateRoute();
 renderFakeQr('pix-qr-grid', 'PIX-DEMO');
+

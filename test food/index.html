@@ -26,6 +26,7 @@
             <svg viewBox="0 0 24 24"><path d="M10 2a8 8 0 0 1 6.32 12.9l4.39 4.4-1.41 1.4-4.4-4.39A8 8 0 1 1 10 2zm0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z"/></svg>
           </span>
         </label>
+        <button class="btn secondary login-btn" id="open-login">Entrar</button>
       </div>
     </header>
 
@@ -103,6 +104,63 @@
           <button class="btn" type="submit">Adicionar oferta</button>
         </form>
         <p><small>Registros ficam no navegador (localStorage). Use este MVP para apresentar a ideia.</small></p>
+      </div>
+    </section>
+
+    <section class="section hidden" id="admin-dashboard">
+      <h2>Painel Admin</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Indicadores</h3>
+          <div id="admin-metrics" class="admin-metrics"></div>
+        </div>
+        <div class="card">
+          <h3>Restaurantes pendentes</h3>
+          <div id="admin-approvals"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section hidden" id="restaurant-dashboard">
+      <h2>Painel do Restaurante</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Publicar refeicao</h3>
+          <form class="form" id="restaurant-meal-form">
+            <input type="text" id="r-meal-name" placeholder="Nome da refeicao" required />
+            <textarea id="r-meal-ingredients" placeholder="Ingredientes (ex: frango, arroz, cenoura)" maxlength="120" required></textarea>
+            <div class="form">
+              <label class="upload-label">
+                <input type="file" id="r-meal-image" accept="image/*" />
+                <span>Enviar foto da refeicao</span>
+              </label>
+            </div>
+            <div class="allergen-picker">
+              <input type="text" id="r-meal-allergen" list="allergen-options" placeholder="Alergeno (ex: gluten)" />
+              <button class="btn secondary" type="button" id="add-allergen">Adicionar</button>
+            </div>
+            <datalist id="allergen-options">
+              <option value="Gluten"></option>
+              <option value="Lactose"></option>
+              <option value="Castanhas"></option>
+              <option value="Ovos"></option>
+              <option value="Frutos do mar"></option>
+            </datalist>
+            <div class="allergen-chips" id="allergen-chips"></div>
+            <input type="number" id="r-meal-price" placeholder="Preco promocional (R$)" min="1" step="0.5" required />
+            <input type="number" id="r-meal-original" placeholder="Preco original (R$)" min="1" step="0.5" required />
+            <input type="number" id="r-meal-available" placeholder="Quantidade disponivel" min="1" step="1" required />
+            <button class="btn" type="submit">Publicar</button>
+          </form>
+        </div>
+        <div class="card">
+          <h3>Refeicoes do dia</h3>
+          <div id="restaurant-meals"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Pedidos recebidos</h3>
+        <div id="restaurant-orders"></div>
       </div>
     </section>
 
@@ -261,6 +319,55 @@
           <a class="btn secondary map-link" id="map-waze" target="_blank" rel="noreferrer">Waze</a>
         </div>
         <small>Se o app estiver instalado, ele abrira direto.</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="login-modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Entrar</h3>
+        <button class="back modal-close" data-close="login-modal">Fechar</button>
+      </div>
+      <div class="modal-body">
+        <form class="form" id="login-form">
+          <input type="email" id="login-email" placeholder="Email" required />
+          <input type="password" id="login-pass" placeholder="Senha" required />
+          <select id="login-role" required>
+            <option value="client">Cliente</option>
+            <option value="restaurant">Restaurante</option>
+            <option value="admin">Admin</option>
+          </select>
+          <div id="restaurant-fields" class="form hidden">
+            <input type="text" id="login-restaurant-name" placeholder="Nome do restaurante" />
+            <input type="text" id="login-restaurant-neighborhood" placeholder="Bairro" />
+          </div>
+          <button class="btn" type="submit">Entrar</button>
+        </form>
+        <small>Use qualquer email/senha para demonstracao.</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="restaurant-confirm-modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Confirmar retirada</h3>
+        <button class="back modal-close" data-close="restaurant-confirm-modal">Fechar</button>
+      </div>
+      <div class="modal-body">
+        <div class="list-item">
+          <strong>Pedido</strong>
+          <div><small id="confirm-order-text">Pedido #</small></div>
+        </div>
+        <div class="list-item">
+          <strong>Confirmacao rapida</strong>
+          <p><small>Use o numero do pedido ou confirme via QR (demo).</small></p>
+          <div class="modal-actions">
+            <button class="btn secondary" id="confirm-by-number">Confirmar por numero</button>
+            <button class="btn" id="confirm-by-qr">Escanear QR (demo)</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
