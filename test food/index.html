@@ -13,7 +13,7 @@
         <h1>ReServe</h1>
         <p>Sem desperdicios, todos ganham.</p>
       </div>
-      <div class="top-bar">
+      <div class="top-bar" id="top-bar">
         <div class="location">
           <span>Joao Pessoa, PB</span>
           <span class="top-icon" aria-hidden="true">
@@ -29,6 +29,85 @@
         <button class="btn secondary login-btn" id="open-login">Entrar</button>
       </div>
     </header>
+
+    <section class="section hidden" id="admin-dashboard">
+      <h2>Painel Admin</h2>
+      <div class="admin-header">
+        <input type="text" id="admin-search" placeholder="Buscar restaurante, pedido ou ticket" />
+        <select id="admin-scope">
+          <option value="all">Tudo</option>
+          <option value="restaurants">Restaurantes</option>
+          <option value="orders">Pedidos</option>
+          <option value="payouts">Pagamentos</option>
+          <option value="support">Suporte</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="admin-tabs">
+          <button class="admin-tab active" data-admin="overview">Visao geral</button>
+          <button class="admin-tab" data-admin="restaurants">Restaurantes</button>
+          <button class="admin-tab" data-admin="orders">Pedidos</button>
+          <button class="admin-tab" data-admin="payouts">Pagamentos</button>
+          <button class="admin-tab" data-admin="support">Suporte</button>
+          <button class="admin-tab" data-admin="audit">Auditoria</button>
+        </div>
+      </div>
+      <div class="admin-panel active" data-admin-panel="overview">
+        <div class="grid">
+          <div class="card">
+            <h3>Indicadores</h3>
+            <div id="admin-metrics" class="admin-metrics"></div>
+          </div>
+          <div class="card">
+            <h3>Acoes rapidas</h3>
+            <div class="modal-actions">
+              <button class="btn" id="open-admin-register">Registrar restaurante</button>
+            </div>
+            <div id="admin-summary"></div>
+          </div>
+          <div class="card">
+            <h3>Alertas operacionais</h3>
+            <div id="admin-alerts"></div>
+          </div>
+        </div>
+      </div>
+      <div class="admin-panel" data-admin-panel="restaurants">
+        <div class="grid">
+          <div class="card">
+            <h3>Restaurantes pendentes</h3>
+            <div id="admin-approvals"></div>
+          </div>
+          <div class="card">
+            <h3>Restaurantes ativos</h3>
+            <div id="admin-restaurants"></div>
+          </div>
+        </div>
+      </div>
+      <div class="admin-panel" data-admin-panel="orders">
+        <div class="card">
+          <h3>Pedidos</h3>
+          <div id="admin-orders"></div>
+        </div>
+      </div>
+      <div class="admin-panel" data-admin-panel="payouts">
+        <div class="card">
+          <h3>Pagamentos</h3>
+          <div id="admin-payouts"></div>
+        </div>
+      </div>
+      <div class="admin-panel" data-admin-panel="support">
+        <div class="card">
+          <h3>Suporte ao cliente</h3>
+          <div id="admin-support"></div>
+        </div>
+      </div>
+      <div class="admin-panel" data-admin-panel="audit">
+        <div class="card">
+          <h3>Auditoria</h3>
+          <div id="admin-audit"></div>
+        </div>
+      </div>
+    </section>
 
     <section class="section" id="marketplace">
       <h2>Restaurantes perto de voce</h2>
@@ -88,36 +167,6 @@
           </div>
         </div>
         <div id="detail-meal-list"></div>
-      </div>
-    </section>
-
-    <section class="section" id="admin">
-      <h2>Admin</h2>
-      <div class="card">
-        <h3>Registrar restaurante</h3>
-        <form class="form" id="admin-form">
-          <input type="text" id="r-name" placeholder="Nome do restaurante" required />
-          <input type="text" id="r-neighborhood" placeholder="Bairro" required />
-          <input type="text" id="meal-name" placeholder="Nome da refeicao" required />
-          <input type="number" id="meal-price" placeholder="Preco promocional (R$)" min="1" step="0.5" required />
-          <input type="number" id="meal-original" placeholder="Preco original (R$)" min="1" step="0.5" required />
-          <button class="btn" type="submit">Adicionar oferta</button>
-        </form>
-        <p><small>Registros ficam no navegador (localStorage). Use este MVP para apresentar a ideia.</small></p>
-      </div>
-    </section>
-
-    <section class="section hidden" id="admin-dashboard">
-      <h2>Painel Admin</h2>
-      <div class="grid">
-        <div class="card">
-          <h3>Indicadores</h3>
-          <div id="admin-metrics" class="admin-metrics"></div>
-        </div>
-        <div class="card">
-          <h3>Restaurantes pendentes</h3>
-          <div id="admin-approvals"></div>
-        </div>
       </div>
     </section>
 
@@ -368,6 +417,39 @@
             <button class="btn" id="confirm-by-qr">Escanear QR (demo)</button>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="admin-register-modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Registrar restaurante</h3>
+        <button class="back modal-close" data-close="admin-register-modal">Fechar</button>
+      </div>
+      <div class="modal-body">
+        <form class="form" id="admin-form">
+          <input type="text" id="r-name" placeholder="Nome do restaurante" required />
+          <input type="text" id="r-neighborhood" placeholder="Bairro" required />
+          <input type="text" id="r-doc" placeholder="CNPJ/CPF" required />
+          <select id="r-category" required>
+            <option value="">Categoria</option>
+            <option value="Padaria">Padaria</option>
+            <option value="Refeicoes">Refeicoes</option>
+            <option value="Mercados">Mercados</option>
+            <option value="Vegetariano">Vegetariano</option>
+            <option value="Doces">Doces</option>
+          </select>
+          <input type="text" id="r-hours" placeholder="Horario de funcionamento" required />
+          <input type="text" id="r-contact" placeholder="Contato (email ou telefone)" required />
+          <select id="r-doc-status" required>
+            <option value="">Documentos</option>
+            <option value="pendente">Pendente</option>
+            <option value="verificado">Verificado</option>
+          </select>
+          <button class="btn" type="submit">Enviar para aprovacao</button>
+        </form>
+        <p><small>Registros ficam no navegador (localStorage). Use este MVP para apresentar a ideia.</small></p>
       </div>
     </div>
   </div>

@@ -429,6 +429,135 @@ input, select, textarea {
   font-size: 0.8rem;
 }
 
+.admin-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.admin-header {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.admin-header input,
+.admin-header select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(31, 27, 22, 0.15);
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+.admin-tab {
+  border: 2px solid var(--brand-dark);
+  border-radius: 999px;
+  padding: 8px 10px;
+  background: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--brand-dark);
+  font-size: 0.85rem;
+}
+
+.admin-tab.active {
+  background: var(--brand-dark);
+  color: #fff;
+}
+
+.admin-panel {
+  display: none;
+  margin-top: 12px;
+}
+
+.admin-panel.active {
+  display: block;
+}
+
+.admin-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #f2f4f2;
+  color: #1f2422;
+}
+
+.admin-pill.success {
+  background: rgba(35, 104, 92, 0.12);
+  color: #23685c;
+}
+
+.admin-pill.warn {
+  background: rgba(196, 132, 0, 0.18);
+  color: #9a5f00;
+}
+
+.admin-pill.danger {
+  background: rgba(194, 61, 52, 0.18);
+  color: #9c2f28;
+}
+
+.admin-alert {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(31, 27, 22, 0.08);
+  background: #fff;
+}
+
+.admin-alert + .admin-alert {
+  margin-top: 10px;
+}
+
+.admin-audit {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-audit-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(31, 27, 22, 0.08);
+  background: #fff;
+}
+
+.admin-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-note {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(31, 27, 22, 0.15);
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  margin-top: 6px;
+}
+
+.admin-actions .btn {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
 .payment-summary {
   margin: 12px 0;
   background: #faf9f6;

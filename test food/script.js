@@ -63,6 +63,9 @@ const restaurantOrdersKey = "reserve-restaurant-orders";
 const restaurantProfileKey = "reserve-restaurant-profile";
 const adminPendingKey = "reserve-admin-pending";
 const adminApprovedKey = "reserve-admin-approved";
+const adminPayoutsKey = "reserve-admin-payouts";
+const adminSupportKey = "reserve-admin-support";
+const adminAuditKey = "reserve-admin-audit";
 
 const state = {
   meals: loadMeals(),
@@ -76,7 +79,9 @@ const state = {
   paidOrders: [],
   role: "client",
   restaurantProfile: loadRestaurantProfile(),
-  confirmOrderLineId: null
+  confirmOrderLineId: null,
+  adminSearch: "",
+  adminScope: "all"
 };
 
 const restaurantCategories = new Map();
@@ -137,8 +142,30 @@ function loadAdminPending() {
   const saved = localStorage.getItem(adminPendingKey);
   if (!saved) {
     const seed = [
-      { id: 201, name: 'Sabor da Vila', neighborhood: 'Tambau' },
-      { id: 202, name: 'Cantinho Mineiro', neighborhood: 'Manaira' }
+      {
+        id: 201,
+        name: 'Sabor da Vila',
+        neighborhood: 'Tambau',
+        docNumber: '12.345.678/0001-99',
+        category: 'Refeicoes',
+        hours: '10:00 - 22:00',
+        contact: 'contato@sabordavila.com',
+        docStatus: 'pendente',
+        photos: 3,
+        createdAt: 'Hoje'
+      },
+      {
+        id: 202,
+        name: 'Cantinho Mineiro',
+        neighborhood: 'Manaira',
+        docNumber: '98.765.432/0001-55',
+        category: 'Padaria',
+        hours: '06:00 - 20:00',
+        contact: 'contato@cantinhomineiro.com',
+        docStatus: 'verificado',
+        photos: 4,
+        createdAt: 'Ontem'
+      }
     ];
     localStorage.setItem(adminPendingKey, JSON.stringify(seed));
     return seed;
@@ -168,6 +195,86 @@ function loadAdminApproved() {
 
 function saveAdminApproved(list) {
   localStorage.setItem(adminApprovedKey, JSON.stringify(list));
+}
+
+function loadAdminPayouts() {
+  const saved = localStorage.getItem(adminPayoutsKey);
+  if (!saved) {
+    const seed = [
+      { id: 401, restaurant: 'Bistro do Porto', amount: 120, status: 'pendente' },
+      { id: 402, restaurant: 'Cantina 27', amount: 95, status: 'pendente' },
+      { id: 403, restaurant: 'Casa do Sabor', amount: 180, status: 'pago' }
+    ];
+    localStorage.setItem(adminPayoutsKey, JSON.stringify(seed));
+    return seed;
+  }
+  try {
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveAdminPayouts(list) {
+  localStorage.setItem(adminPayoutsKey, JSON.stringify(list));
+}
+
+function loadAdminSupport() {
+  const saved = localStorage.getItem(adminSupportKey);
+  if (!saved) {
+    const seed = [
+      { id: 501, user: 'Ana Souza', issue: 'Pedido atrasado', status: 'aberto', priority: 'alta', sla: '2h', note: '' },
+      { id: 502, user: 'Lucas Lima', issue: 'Item faltando', status: 'em andamento', priority: 'media', sla: '6h', note: '' },
+      { id: 503, user: 'Carla Mendes', issue: 'Nao conseguiu retirar', status: 'aberto', priority: 'alta', sla: '4h', note: '' },
+      { id: 504, user: 'Pedro Santos', issue: 'Cobranca duplicada', status: 'aberto', priority: 'alta', sla: '1h', note: '' }
+    ];
+    localStorage.setItem(adminSupportKey, JSON.stringify(seed));
+    return seed;
+  }
+  try {
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveAdminSupport(list) {
+  localStorage.setItem(adminSupportKey, JSON.stringify(list));
+}
+
+function loadAdminAudit() {
+  const saved = localStorage.getItem(adminAuditKey);
+  if (!saved) {
+    const seed = [
+      { id: 601, action: 'Painel acessado', target: 'Admin', time: 'Hoje 09:02' },
+      { id: 602, action: 'Restaurante aprovado', target: 'Cantinho Mineiro', time: 'Ontem 18:40' }
+    ];
+    localStorage.setItem(adminAuditKey, JSON.stringify(seed));
+    return seed;
+  }
+  try {
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveAdminAudit(list) {
+  localStorage.setItem(adminAuditKey, JSON.stringify(list));
+}
+
+function addAuditEntry(action, target) {
+  const entries = loadAdminAudit();
+  entries.unshift({
+    id: Date.now(),
+    action,
+    target,
+    time: new Date().toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  });
+  saveAdminAudit(entries.slice(0, 20));
 }
 
 function getAllMeals() {
@@ -306,6 +413,16 @@ function mealMatches(meal, query) {
   );
 }
 
+function adminScopeActive(scope) {
+  return state.adminScope === 'all' || state.adminScope === scope;
+}
+
+function adminMatchesSearch(text, scope) {
+  if (!adminScopeActive(scope)) return true;
+  if (!state.adminSearch) return true;
+  return text.toLowerCase().includes(state.adminSearch);
+}
+
 function allergenLetter(value) {
   const normalized = value.toLowerCase();
   if (normalized.includes('gluten')) return 'G';
@@ -426,11 +543,22 @@ function renderRestaurantOrders() {
 function renderAdminDashboard() {
   const metrics = document.getElementById('admin-metrics');
   const approvals = document.getElementById('admin-approvals');
+  const summary = document.getElementById('admin-summary');
+  const restaurantsList = document.getElementById('admin-restaurants');
+  const ordersList = document.getElementById('admin-orders');
+  const payoutsList = document.getElementById('admin-payouts');
+  const supportList = document.getElementById('admin-support');
+  const alertsList = document.getElementById('admin-alerts');
+  const auditList = document.getElementById('admin-audit');
   if (!metrics || !approvals) return;
 
   const restaurants = uniqueRestaurants();
   const pending = loadAdminPending();
   const approved = loadAdminApproved();
+  const payouts = loadAdminPayouts();
+  const support = loadAdminSupport();
+  const audit = loadAdminAudit();
+  const restaurantOrders = loadRestaurantOrders();
 
   metrics.innerHTML = '';
   const metricItems = [
@@ -438,7 +566,8 @@ function renderAdminDashboard() {
     { label: 'Refeicoes no feed', value: getAllMeals().length },
     { label: 'Pedidos pagos', value: state.paidOrders.length },
     { label: 'Pendentes', value: pending.length },
-    { label: 'Aprovados', value: approved.length }
+    { label: 'Aprovados', value: approved.length },
+    { label: 'Tickets abertos', value: support.filter(item => item.status !== 'resolvido').length }
   ];
   metricItems.forEach(item => {
     const card = document.createElement('div');
@@ -448,12 +577,24 @@ function renderAdminDashboard() {
   });
 
   approvals.innerHTML = '';
-  pending.forEach(item => {
+  pending
+    .filter(item => adminMatchesSearch(`${item.name} ${item.neighborhood} ${item.category || ''}`, 'restaurants'))
+    .forEach(item => {
     const row = document.createElement('div');
     row.className = 'list-item';
+    const docClass = item.docStatus === 'verificado' ? 'success' : 'warn';
     row.innerHTML = `
       <strong>${item.name}</strong>
       <div><small>${item.neighborhood}</small></div>
+      <div class="admin-meta">
+        <span class="admin-pill">${item.category || 'Categoria'}</span>
+        <span class="admin-pill ${docClass}">Docs: ${item.docStatus || 'pendente'}</span>
+        <span class="admin-pill">Fotos: ${item.photos || 0}</span>
+      </div>
+      <div><small>Horario: ${item.hours || '-'}</small></div>
+      <div><small>Contato: ${item.contact || '-'}</small></div>
+      <div><small>Doc: ${item.docNumber || '-'}</small></div>
+      <div><small>Recebido: ${item.createdAt || '-'}</small></div>
       <div class="admin-actions">
         <button class="btn secondary admin-action" data-id="${item.id}" data-action="reject">Rejeitar</button>
         <button class="btn admin-action" data-id="${item.id}" data-action="approve">Aprovar</button>
@@ -461,6 +602,169 @@ function renderAdminDashboard() {
     `;
     approvals.appendChild(row);
   });
+
+  if (summary) {
+    const pendingPayouts = payouts.filter(item => item.status === 'pendente').length;
+    summary.innerHTML = `
+      <div class="admin-metric"><strong>${pending.length}</strong><small>Solicitacoes pendentes</small></div>
+      <div class="admin-metric"><strong>${approved.length}</strong><small>Restaurantes aprovados</small></div>
+      <div class="admin-metric"><strong>${state.paidOrders.length}</strong><small>Pedidos pagos</small></div>
+      <div class="admin-metric"><strong>${pendingPayouts}</strong><small>Pagamentos pendentes</small></div>
+    `;
+  }
+
+  if (restaurantsList) {
+    restaurantsList.innerHTML = '';
+    const list = approved.length ? approved : restaurants.map((r, i) => ({
+      id: 300 + i,
+      name: r.name,
+      neighborhood: r.neighborhood
+    }));
+    list
+      .filter(item => adminMatchesSearch(`${item.name} ${item.neighborhood}`, 'restaurants'))
+      .forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'list-item';
+      row.innerHTML = `
+        <strong>${item.name}</strong>
+        <div><small>${item.neighborhood}</small></div>
+        ${item.category ? `<div class="admin-meta"><span class="admin-pill">${item.category}</span><span class="admin-pill success">ativo</span></div>` : ''}
+        <div class="admin-actions">
+          <button class="btn secondary">Ver</button>
+          <button class="btn secondary">Pausar</button>
+        </div>
+      `;
+      restaurantsList.appendChild(row);
+    });
+  }
+
+  if (ordersList) {
+    ordersList.innerHTML = '';
+    const orders = state.paidOrders
+      .filter(order => adminMatchesSearch(`${order.id} ${order.items.map(item => item.name).join(' ')}`, 'orders'))
+      .slice(0, 6);
+    if (!orders.length) {
+      ordersList.innerHTML = '<p><small>Nenhum pedido pago ainda.</small></p>';
+    } else {
+      orders.forEach(order => {
+        const row = document.createElement('div');
+        row.className = 'list-item';
+        row.innerHTML = `
+          <strong>Pedido #${order.id}</strong>
+          <div><small>Total: ${formatBRL(order.total)}</small></div>
+          <div><small>Status: Pago</small></div>
+          <div class="admin-actions">
+            <button class="btn secondary">Detalhes</button>
+            <button class="btn secondary">Reembolso</button>
+          </div>
+        `;
+        ordersList.appendChild(row);
+      });
+    }
+  }
+
+  if (payoutsList) {
+    payoutsList.innerHTML = '';
+    const filtered = payouts.filter(item => adminMatchesSearch(`${item.restaurant}`, 'payouts'));
+    if (!filtered.length) {
+      payoutsList.innerHTML = '<p><small>Nenhum pagamento pendente.</small></p>';
+    } else {
+      filtered.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'list-item';
+        const statusClass = item.status === 'pago' ? 'success' : 'warn';
+        row.innerHTML = `
+          <strong>${item.restaurant}</strong>
+          <div><small>Repasse: ${formatBRL(item.amount)}</small></div>
+          <div class="admin-row">
+            <span class="admin-pill ${statusClass}">${item.status}</span>
+          </div>
+          <div class="admin-actions">
+            <button class="btn secondary">Detalhes</button>
+            ${item.status === 'pendente'
+              ? `<button class="btn admin-payout" data-id="${item.id}">Marcar pago</button>`
+              : `<button class="btn secondary" disabled>Pago</button>`}
+          </div>
+        `;
+        payoutsList.appendChild(row);
+      });
+    }
+  }
+
+  if (supportList) {
+    supportList.innerHTML = '';
+    support
+      .filter(ticket => adminMatchesSearch(`${ticket.user} ${ticket.issue}`, 'support'))
+      .forEach(ticket => {
+      const row = document.createElement('div');
+      row.className = 'list-item';
+      const priorityClass = ticket.priority === 'alta' ? 'danger' : ticket.priority === 'media' ? 'warn' : 'success';
+      row.innerHTML = `
+        <strong>Ticket #${ticket.id}</strong>
+        <div><small>${ticket.user}</small></div>
+        <div><small>${ticket.issue}</small></div>
+        <div class="admin-row">
+          <span class="admin-pill ${priorityClass}">${ticket.priority}</span>
+          <span class="admin-pill">${ticket.sla}</span>
+          <span class="admin-pill">${ticket.status}</span>
+        </div>
+        <textarea class="admin-note" id="support-note-${ticket.id}" placeholder="Notas internas">${ticket.note || ''}</textarea>
+        <div class="admin-actions">
+          <button class="btn secondary admin-support" data-id="${ticket.id}" data-action="save">Salvar nota</button>
+          <button class="btn secondary admin-support" data-id="${ticket.id}" data-action="close">Encerrar</button>
+        </div>
+      `;
+      supportList.appendChild(row);
+    });
+  }
+
+  if (alertsList) {
+    alertsList.innerHTML = '';
+    const pendingDocs = pending.filter(item => item.docStatus !== 'verificado').length;
+    const pendingPayouts = payouts.filter(item => item.status === 'pendente').length;
+    const highPriority = support.filter(item => item.priority === 'alta' && item.status !== 'resolvido').length;
+    const newOrders = restaurantOrders.filter(item => item.status === 'novo').length;
+    const alerts = [];
+    if (pending.length) alerts.push({ label: `${pending.length} restaurantes aguardando aprovacao`, level: 'warn' });
+    if (pendingDocs) alerts.push({ label: `${pendingDocs} cadastros com docs pendentes`, level: 'danger' });
+    if (pendingPayouts) alerts.push({ label: `${pendingPayouts} pagamentos pendentes`, level: 'warn' });
+    if (highPriority) alerts.push({ label: `${highPriority} tickets alta prioridade`, level: 'danger' });
+    if (newOrders) alerts.push({ label: `${newOrders} pedidos novos sem status`, level: 'warn' });
+    if (!alerts.length) {
+      alertsList.innerHTML = '<p><small>Nenhum alerta no momento.</small></p>';
+    } else {
+      alerts.forEach(alert => {
+        const row = document.createElement('div');
+        row.className = 'admin-alert';
+        row.innerHTML = `
+          <div class="admin-row">
+            <span class="admin-pill ${alert.level}">${alert.level}</span>
+            <span><small>${alert.label}</small></span>
+          </div>
+        `;
+        alertsList.appendChild(row);
+      });
+    }
+  }
+
+  if (auditList) {
+    auditList.innerHTML = '';
+    const entries = audit.slice(0, 8);
+    if (!entries.length) {
+      auditList.innerHTML = '<p><small>Nenhuma acao registrada.</small></p>';
+    } else {
+      entries.forEach(entry => {
+        const row = document.createElement('div');
+        row.className = 'admin-audit-item';
+        row.innerHTML = `
+          <strong>${entry.action}</strong>
+          <div><small>${entry.target}</small></div>
+          <div><small>${entry.time}</small></div>
+        `;
+        auditList.appendChild(row);
+      });
+    }
+  }
 }
 function hashSeed(seed) {
   let hash = 0;
@@ -537,7 +841,7 @@ function closeOverlayModal(id) {
 }
 
 function closeAllOverlayModals() {
-  ['orders-modal', 'profile-modal', 'payment-modal', 'map-modal', 'login-modal', 'restaurant-confirm-modal'].forEach(closeOverlayModal);
+  ['orders-modal', 'profile-modal', 'payment-modal', 'map-modal', 'login-modal', 'restaurant-confirm-modal', 'admin-register-modal'].forEach(closeOverlayModal);
 }
 
 function setActiveNav(id) {
@@ -868,19 +1172,24 @@ function scrollToSection(id) {
 
 document.getElementById('admin-form').addEventListener('submit', event => {
   event.preventDefault();
-  const meal = {
+  const pending = loadAdminPending();
+  const entry = {
     id: Date.now(),
-    restaurant: document.getElementById('r-name').value.trim(),
+    name: document.getElementById('r-name').value.trim(),
     neighborhood: document.getElementById('r-neighborhood').value.trim(),
-    name: document.getElementById('meal-name').value.trim(),
-    price: Number(document.getElementById('meal-price').value),
-    original: Number(document.getElementById('meal-original').value)
+    docNumber: document.getElementById('r-doc').value.trim(),
+    category: document.getElementById('r-category').value,
+    hours: document.getElementById('r-hours').value.trim(),
+    contact: document.getElementById('r-contact').value.trim(),
+    docStatus: document.getElementById('r-doc-status').value,
+    photos: 3,
+    createdAt: 'Hoje'
   };
 
-  state.meals.unshift(meal);
-  saveMeals();
-  renderRestaurants();
-  renderMeals('modal-meal-list');
+  pending.unshift(entry);
+  saveAdminPending(pending);
+  addAuditEntry('Cadastro recebido', `${entry.name} - ${entry.neighborhood}`);
+  renderAdminDashboard();
   event.target.reset();
 });
 
@@ -889,7 +1198,11 @@ function updateRoute() {
   const isRestaurant = window.location.hash === '#restaurant';
   const showUser = !isAdmin && !isRestaurant;
 
-  document.getElementById('admin').style.display = isAdmin ? 'block' : 'none';
+  const topBar = document.getElementById('top-bar');
+  if (topBar) topBar.style.display = isAdmin ? 'none' : 'grid';
+
+  const adminRoot = document.getElementById('admin');
+  if (adminRoot) adminRoot.style.display = isAdmin ? 'block' : 'none';
   document.getElementById('admin-dashboard').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('restaurant-dashboard').style.display = isRestaurant ? 'block' : 'none';
   document.getElementById('marketplace').style.display = showUser ? 'block' : 'none';
@@ -927,6 +1240,31 @@ document.querySelectorAll('#category-row .category').forEach(button => {
   });
 });
 
+document.querySelectorAll('.admin-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.admin-tab').forEach(item => item.classList.remove('active'));
+    document.querySelectorAll('.admin-panel').forEach(panel => panel.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelector(`[data-admin-panel="${tab.dataset.admin}"]`)?.classList.add('active');
+  });
+});
+
+const adminSearchInput = document.getElementById('admin-search');
+if (adminSearchInput) {
+  adminSearchInput.addEventListener('input', event => {
+    state.adminSearch = event.target.value.trim().toLowerCase();
+    renderAdminDashboard();
+  });
+}
+
+const adminScopeSelect = document.getElementById('admin-scope');
+if (adminScopeSelect) {
+  adminScopeSelect.addEventListener('change', event => {
+    state.adminScope = event.target.value;
+    renderAdminDashboard();
+  });
+}
+
 document.querySelectorAll('.modal-close').forEach(button => {
   button.addEventListener('click', event => {
     const target = event.currentTarget.getAttribute('data-close');
@@ -934,7 +1272,7 @@ document.querySelectorAll('.modal-close').forEach(button => {
   });
 });
 
-['orders-modal', 'profile-modal', 'payment-modal', 'map-modal', 'login-modal', 'restaurant-confirm-modal'].forEach(id => {
+['orders-modal', 'profile-modal', 'payment-modal', 'map-modal', 'login-modal', 'restaurant-confirm-modal', 'admin-register-modal'].forEach(id => {
   const modal = document.getElementById(id);
   modal.addEventListener('click', event => {
     if (event.target.id === id) closeOverlayModal(id);
@@ -1083,6 +1421,10 @@ document.getElementById('open-login').addEventListener('click', () => {
   openOverlayModal('login-modal');
 });
 
+document.getElementById('open-admin-register').addEventListener('click', () => {
+  openOverlayModal('admin-register-modal');
+});
+
 document.getElementById('login-role').addEventListener('change', event => {
   const fields = document.getElementById('restaurant-fields');
   fields.classList.toggle('hidden', event.target.value !== 'restaurant');
@@ -1148,6 +1490,44 @@ document.addEventListener('click', event => {
   if (action === 'approve') {
     approved.unshift(target);
     saveAdminApproved(approved);
+    addAuditEntry('Restaurante aprovado', target.name);
+  } else {
+    addAuditEntry('Restaurante rejeitado', target.name);
+  }
+  renderAdminDashboard();
+});
+
+document.addEventListener('click', event => {
+  const payoutButton = event.target.closest('.admin-payout');
+  if (!payoutButton) return;
+  const id = Number(payoutButton.dataset.id);
+  const payouts = loadAdminPayouts();
+  const target = payouts.find(item => item.id === id);
+  if (!target) return;
+  target.status = 'pago';
+  saveAdminPayouts(payouts);
+  addAuditEntry('Pagamento realizado', target.restaurant);
+  renderAdminDashboard();
+});
+
+document.addEventListener('click', event => {
+  const supportButton = event.target.closest('.admin-support');
+  if (!supportButton) return;
+  const id = Number(supportButton.dataset.id);
+  const action = supportButton.dataset.action;
+  const tickets = loadAdminSupport();
+  const target = tickets.find(item => item.id === id);
+  if (!target) return;
+  if (action === 'save') {
+    const note = document.getElementById(`support-note-${id}`);
+    target.note = note ? note.value.trim() : '';
+    saveAdminSupport(tickets);
+    addAuditEntry('Nota atualizada', `Ticket #${id}`);
+  }
+  if (action === 'close') {
+    target.status = 'resolvido';
+    saveAdminSupport(tickets);
+    addAuditEntry('Ticket encerrado', `Ticket #${id}`);
   }
   renderAdminDashboard();
 });
