@@ -32,16 +32,6 @@
 
     <section class="section hidden" id="admin-dashboard">
       <h2>Painel Admin</h2>
-      <div class="admin-header">
-        <input type="text" id="admin-search" placeholder="Buscar restaurante, pedido ou ticket" />
-        <select id="admin-scope">
-          <option value="all">Tudo</option>
-          <option value="restaurants">Restaurantes</option>
-          <option value="orders">Pedidos</option>
-          <option value="payouts">Pagamentos</option>
-          <option value="support">Suporte</option>
-        </select>
-      </div>
       <div class="card">
         <div class="admin-tabs">
           <button class="admin-tab active" data-admin="overview">Visao geral</button>
@@ -60,9 +50,6 @@
           </div>
           <div class="card">
             <h3>Acoes rapidas</h3>
-            <div class="modal-actions">
-              <button class="btn" id="open-admin-register">Registrar restaurante</button>
-            </div>
             <div id="admin-summary"></div>
           </div>
           <div class="card">
@@ -75,6 +62,9 @@
         <div class="grid">
           <div class="card">
             <h3>Restaurantes pendentes</h3>
+            <div class="modal-actions">
+              <button class="btn" id="open-admin-register">Registrar restaurante</button>
+            </div>
             <div id="admin-approvals"></div>
           </div>
           <div class="card">
@@ -92,13 +82,24 @@
       <div class="admin-panel" data-admin-panel="payouts">
         <div class="card">
           <h3>Pagamentos</h3>
+          <input type="text" id="admin-payout-search" placeholder="Buscar por pedido, restaurante ou cliente" />
           <div id="admin-payouts"></div>
         </div>
       </div>
       <div class="admin-panel" data-admin-panel="support">
         <div class="card">
           <h3>Suporte ao cliente</h3>
-          <div id="admin-support"></div>
+          <div id="support-counts" class="support-counts"></div>
+          <div class="support-filters">
+            <button class="support-filter active" data-priority="novos">Novos</button>
+            <button class="support-filter" data-priority="alta">Alta</button>
+            <button class="support-filter" data-priority="media">Media</button>
+            <button class="support-filter" data-priority="baixa">Baixa</button>
+          </div>
+          <input type="text" id="admin-support-search" placeholder="Buscar ticket por cliente ou assunto" />
+          <div class="support-grid">
+            <div id="admin-support"></div>
+          </div>
         </div>
       </div>
       <div class="admin-panel" data-admin-panel="audit">
@@ -355,6 +356,16 @@
     </div>
   </div>
 
+  <div class="modal" id="support-modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Detalhes do ticket</h3>
+        <button class="back modal-close" data-close="support-modal">Fechar</button>
+      </div>
+      <div class="modal-body" id="support-modal-body"></div>
+    </div>
+  </div>
+
   <div class="modal" id="map-modal" aria-hidden="true">
     <div class="modal-card">
       <div class="modal-header">
@@ -451,6 +462,26 @@
         </form>
         <p><small>Registros ficam no navegador (localStorage). Use este MVP para apresentar a ideia.</small></p>
       </div>
+    </div>
+  </div>
+
+  <div class="modal" id="admin-restaurant-modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Detalhes do restaurante</h3>
+        <button class="back modal-close" data-close="admin-restaurant-modal">Fechar</button>
+      </div>
+      <div class="modal-body" id="admin-restaurant-body"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="admin-order-modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Detalhes do pedido</h3>
+        <button class="back modal-close" data-close="admin-order-modal">Fechar</button>
+      </div>
+      <div class="modal-body" id="admin-order-body"></div>
     </div>
   </div>
 

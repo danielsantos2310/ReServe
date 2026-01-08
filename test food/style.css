@@ -435,23 +435,6 @@ input, select, textarea {
   gap: 8px;
 }
 
-.admin-header {
-  display: grid;
-  grid-template-columns: 1fr 160px;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.admin-header input,
-.admin-header select {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(31, 27, 22, 0.15);
-  font-size: 0.95rem;
-  background: #fff;
-}
-
 .admin-tab {
   border: 2px solid var(--brand-dark);
   border-radius: 999px;
@@ -555,6 +538,120 @@ input, select, textarea {
 
 .admin-actions .btn {
   padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+#admin-payout-search,
+#admin-support-search {
+  width: 100%;
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(31, 27, 22, 0.15);
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+.support-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.support-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
+.support-filter {
+  border: 2px solid var(--brand-dark);
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: #fff;
+  color: var(--brand-dark);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.support-filter.active {
+  background: var(--brand-dark);
+  color: #fff;
+}
+
+.support-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.support-detail {
+  border: 1px solid rgba(31, 27, 22, 0.08);
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+  min-height: 160px;
+}
+
+.support-priority {
+  width: 100%;
+  margin: 8px 0 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(31, 27, 22, 0.15);
+  font-size: 0.85rem;
+  background: #fff;
+}
+
+.admin-doc-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.admin-doc {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(31, 27, 22, 0.08);
+  background: #fff;
+  font-size: 0.85rem;
+}
+
+.admin-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.admin-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(31, 27, 22, 0.1);
+}
+
+.admin-upload {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.support-history {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
   font-size: 0.85rem;
 }
 

@@ -81,7 +81,11 @@ const state = {
   restaurantProfile: loadRestaurantProfile(),
   confirmOrderLineId: null,
   adminSearch: "",
-  adminScope: "all"
+  adminScope: "all",
+  adminPayoutSearch: "",
+  adminSupportSearch: "",
+  adminSupportFilter: "novos",
+  adminSelectedTicketId: null
 };
 
 const restaurantCategories = new Map();
@@ -152,6 +156,10 @@ function loadAdminPending() {
         contact: 'contato@sabordavila.com',
         docStatus: 'pendente',
         photos: 3,
+        documents: ['CNPJ.pdf', 'Alvara.pdf'],
+        photoUrls: ['image.png', 'image copy.png'],
+        photoNames: ['salao.jpg', 'buffet.jpg'],
+        photoNames: ['fachada.jpg', 'menu.jpg'],
         createdAt: 'Hoje'
       },
       {
@@ -164,6 +172,9 @@ function loadAdminPending() {
         contact: 'contato@cantinhomineiro.com',
         docStatus: 'verificado',
         photos: 4,
+        documents: ['CNPJ.pdf', 'Licenca.pdf', 'Responsavel.pdf'],
+        photoUrls: ['image copy 2.png', 'image copy 3.png'],
+        photoNames: ['vitrine.jpg', 'cozinha.jpg'],
         createdAt: 'Ontem'
       }
     ];
@@ -184,7 +195,67 @@ function saveAdminPending(list) {
 
 function loadAdminApproved() {
   const saved = localStorage.getItem(adminApprovedKey);
-  if (!saved) return [];
+  if (!saved) {
+    const seed = [
+      {
+        id: 301,
+        name: 'Bistro do Porto',
+        neighborhood: 'Centro',
+        docNumber: '45.123.987/0001-11',
+        category: 'Refeicoes',
+        hours: '11:00 - 22:00',
+        contact: 'contato@bistrodoporto.com',
+        docStatus: 'verificado',
+        documents: ['CNPJ.pdf', 'Alvara.pdf'],
+        photoUrls: ['image.png', 'image copy.png'],
+        createdAt: 'Semana passada'
+      },
+      {
+        id: 302,
+        name: 'Casa do Sabor',
+        neighborhood: 'Savassi',
+        docNumber: '22.456.789/0001-33',
+        category: 'Refeicoes',
+        hours: '10:00 - 21:00',
+        contact: 'contato@casadosabor.com',
+        docStatus: 'verificado',
+        documents: ['CNPJ.pdf', 'Licenca.pdf'],
+        photoUrls: ['image copy 2.png'],
+        photoNames: ['fachada.jpg'],
+        createdAt: 'Semana passada'
+      },
+      {
+        id: 303,
+        name: 'Cantina 27',
+        neighborhood: 'Pinheiros',
+        docNumber: '33.987.654/0001-22',
+        category: 'Doces',
+        hours: '09:00 - 20:00',
+        contact: 'contato@cantina27.com',
+        docStatus: 'verificado',
+        documents: ['CNPJ.pdf', 'Responsavel.pdf'],
+        photoUrls: ['image copy 3.png'],
+        photoNames: ['cozinha.jpg'],
+        createdAt: 'Ontem'
+      },
+      {
+        id: 304,
+        name: 'Estacao Verde',
+        neighborhood: 'Batel',
+        docNumber: '55.111.222/0001-66',
+        category: 'Vegetariano',
+        hours: '08:00 - 19:00',
+        contact: 'contato@estacaoverde.com',
+        docStatus: 'verificado',
+        documents: ['CNPJ.pdf', 'Licenca.pdf', 'Responsavel.pdf'],
+        photoUrls: ['image copy 4.png'],
+        photoNames: ['pratos.jpg'],
+        createdAt: 'Hoje'
+      }
+    ];
+    localStorage.setItem(adminApprovedKey, JSON.stringify(seed));
+    return seed;
+  }
   try {
     const parsed = JSON.parse(saved);
     return Array.isArray(parsed) ? parsed : [];
@@ -197,13 +268,26 @@ function saveAdminApproved(list) {
   localStorage.setItem(adminApprovedKey, JSON.stringify(list));
 }
 
+function loadAdminList(source) {
+  return source === 'approved' ? loadAdminApproved() : loadAdminPending();
+}
+
+function saveAdminList(source, list) {
+  if (source === 'approved') {
+    saveAdminApproved(list);
+  } else {
+    saveAdminPending(list);
+  }
+}
+
 function loadAdminPayouts() {
   const saved = localStorage.getItem(adminPayoutsKey);
   if (!saved) {
     const seed = [
-      { id: 401, restaurant: 'Bistro do Porto', amount: 120, status: 'pendente' },
-      { id: 402, restaurant: 'Cantina 27', amount: 95, status: 'pendente' },
-      { id: 403, restaurant: 'Casa do Sabor', amount: 180, status: 'pago' }
+      { id: 401, orderId: 1201, restaurant: 'Bistro do Porto', user: 'Marina Lopes', amount: 12.5, status: 'pendente' },
+      { id: 402, orderId: 1202, restaurant: 'Cantina 27', user: 'Joao Silva', amount: 9.5, status: 'pendente' },
+      { id: 403, orderId: 1203, restaurant: 'Casa do Sabor', user: 'Carla Mendes', amount: 18, status: 'pago' },
+      { id: 404, orderId: 1204, restaurant: 'Estacao Verde', user: 'Ana Souza', amount: 7, status: 'pendente' }
     ];
     localStorage.setItem(adminPayoutsKey, JSON.stringify(seed));
     return seed;
@@ -220,21 +304,197 @@ function saveAdminPayouts(list) {
   localStorage.setItem(adminPayoutsKey, JSON.stringify(list));
 }
 
+function syncPayoutsFromPaidOrders() {
+  const payouts = loadAdminPayouts();
+  const existingOrderIds = new Set(payouts.map(item => item.orderId));
+  const newEntries = [];
+  state.paidOrders.forEach(order => {
+    if (!order || existingOrderIds.has(order.id)) return;
+    order.items.forEach(item => {
+      newEntries.push({
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        orderId: order.id,
+        restaurant: item.restaurant,
+        user: order.user || 'Cliente Demo',
+        amount: item.price * item.qty,
+        status: 'pendente'
+      });
+    });
+  });
+  if (newEntries.length) {
+    saveAdminPayouts([...newEntries, ...payouts]);
+  }
+}
+
 function loadAdminSupport() {
   const saved = localStorage.getItem(adminSupportKey);
   if (!saved) {
     const seed = [
-      { id: 501, user: 'Ana Souza', issue: 'Pedido atrasado', status: 'aberto', priority: 'alta', sla: '2h', note: '' },
-      { id: 502, user: 'Lucas Lima', issue: 'Item faltando', status: 'em andamento', priority: 'media', sla: '6h', note: '' },
-      { id: 503, user: 'Carla Mendes', issue: 'Nao conseguiu retirar', status: 'aberto', priority: 'alta', sla: '4h', note: '' },
-      { id: 504, user: 'Pedro Santos', issue: 'Cobranca duplicada', status: 'aberto', priority: 'alta', sla: '1h', note: '' }
+      {
+        id: 501,
+        user: 'Ana Souza',
+        issue: 'Pedido atrasado',
+        status: 'aberto',
+        priority: 'alta',
+        sla: '2h',
+        note: '',
+        createdAt: 'Hoje 08:10',
+        assigned: 'Equipe A',
+        history: [
+          { time: '08:10', actor: 'Cliente', action: 'Ticket aberto' },
+          { time: '08:35', actor: 'Suporte', action: 'Contato com restaurante' }
+        ]
+      },
+      {
+        id: 502,
+        user: 'Lucas Lima',
+        issue: 'Item faltando',
+        status: 'em andamento',
+        priority: 'media',
+        sla: '6h',
+        note: '',
+        createdAt: 'Hoje 07:20',
+        assigned: 'Equipe B',
+        history: [
+          { time: '07:20', actor: 'Cliente', action: 'Ticket aberto' },
+          { time: '07:45', actor: 'Suporte', action: 'Solicitou comprovante' }
+        ]
+      },
+      {
+        id: 503,
+        user: 'Carla Mendes',
+        issue: 'Nao conseguiu retirar',
+        status: 'aberto',
+        priority: 'alta',
+        sla: '4h',
+        note: '',
+        createdAt: 'Ontem 18:10',
+        assigned: 'Equipe A',
+        history: [
+          { time: '18:10', actor: 'Cliente', action: 'Ticket aberto' }
+        ]
+      },
+      {
+        id: 504,
+        user: 'Pedro Santos',
+        issue: 'Cobranca duplicada',
+        status: 'aberto',
+        priority: 'alta',
+        sla: '1h',
+        note: '',
+        createdAt: 'Hoje 09:00',
+        assigned: 'Equipe C',
+        history: [
+          { time: '09:00', actor: 'Cliente', action: 'Ticket aberto' },
+          { time: '09:05', actor: 'Suporte', action: 'Analise iniciada' }
+        ]
+      },
+      {
+        id: 505,
+        user: 'Fernanda Lima',
+        issue: 'Problema com QR',
+        status: 'aberto',
+        priority: 'baixa',
+        sla: '12h',
+        note: '',
+        createdAt: 'Hoje 06:40',
+        assigned: 'Equipe D',
+        history: [
+          { time: '06:40', actor: 'Cliente', action: 'Ticket aberto' }
+        ]
+      },
+      {
+        id: 506,
+        user: 'Rafael Costa',
+        issue: 'Nao recebeu o pedido',
+        status: 'em andamento',
+        priority: 'alta',
+        sla: '2h',
+        note: '',
+        createdAt: 'Ontem 19:10',
+        assigned: 'Equipe B',
+        history: [
+          { time: '19:10', actor: 'Cliente', action: 'Ticket aberto' },
+          { time: '19:35', actor: 'Suporte', action: 'Contato com entregador' }
+        ]
+      },
+      {
+        id: 507,
+        user: 'Juliana Prado',
+        issue: 'Restaurante fechado',
+        status: 'aberto',
+        priority: 'alta',
+        sla: '3h',
+        note: '',
+        createdAt: 'Hoje 10:05',
+        assigned: 'Equipe A',
+        history: [
+          { time: '10:05', actor: 'Cliente', action: 'Ticket aberto' }
+        ]
+      },
+      {
+        id: 508,
+        user: 'Bruno Alves',
+        issue: 'Pix nao confirmado',
+        status: 'em andamento',
+        priority: 'media',
+        sla: '5h',
+        note: '',
+        createdAt: 'Hoje 09:20',
+        assigned: 'Equipe C',
+        history: [
+          { time: '09:20', actor: 'Cliente', action: 'Ticket aberto' },
+          { time: '09:40', actor: 'Suporte', action: 'Solicitou comprovante' }
+        ]
+      },
+      {
+        id: 509,
+        user: 'Patricia Nunes',
+        issue: 'Dificuldade no login',
+        status: 'aberto',
+        priority: 'baixa',
+        sla: '12h',
+        note: '',
+        createdAt: 'Hoje 08:50',
+        assigned: 'Equipe D',
+        history: [
+          { time: '08:50', actor: 'Cliente', action: 'Ticket aberto' }
+        ]
+      },
+      {
+        id: 510,
+        user: 'Carlos Mota',
+        issue: 'Pedido cancelado sem aviso',
+        status: 'resolvido',
+        priority: 'media',
+        sla: '8h',
+        note: '',
+        createdAt: 'Ontem 15:30',
+        assigned: 'Equipe B',
+        history: [
+          { time: '15:30', actor: 'Cliente', action: 'Ticket aberto' },
+          { time: '16:10', actor: 'Suporte', action: 'Reembolso aprovado' },
+          { time: '16:40', actor: 'Suporte', action: 'Ticket resolvido' }
+        ]
+      }
     ];
     localStorage.setItem(adminSupportKey, JSON.stringify(seed));
     return seed;
   }
   try {
     const parsed = JSON.parse(saved);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    const seen = new Set();
+    const deduped = [];
+    parsed.forEach(item => {
+      if (!item || seen.has(item.id)) return;
+      seen.add(item.id);
+      deduped.push(item);
+    });
+    if (deduped.length !== parsed.length) {
+      localStorage.setItem(adminSupportKey, JSON.stringify(deduped));
+    }
+    return deduped;
   } catch {
     return [];
   }
@@ -423,6 +683,44 @@ function adminMatchesSearch(text, scope) {
   return text.toLowerCase().includes(state.adminSearch);
 }
 
+function payoutMatchesSearch(item) {
+  if (!state.adminPayoutSearch) return false;
+  const search = state.adminPayoutSearch;
+  return `${item.orderId} ${item.restaurant} ${item.user}`.toLowerCase().includes(search);
+}
+
+function supportMatches(ticket) {
+  if (state.adminSupportFilter === 'novos') {
+    if (ticket.status !== 'aberto') return false;
+  } else if (ticket.priority !== state.adminSupportFilter) {
+    return false;
+  }
+  if (!state.adminSupportSearch) return true;
+  return `${ticket.user} ${ticket.issue} ${ticket.id}`.toLowerCase().includes(state.adminSupportSearch);
+}
+
+function supportPriorityScore(priority) {
+  if (priority === 'alta') return 1;
+  if (priority === 'media') return 2;
+  return 3;
+}
+
+function supportStatusScore(status) {
+  if (status === 'aberto') return 1;
+  if (status === 'em andamento') return 2;
+  return 3;
+}
+
+function sortSupportTickets(list) {
+  return list.slice().sort((a, b) => {
+    const priorityDiff = supportPriorityScore(a.priority) - supportPriorityScore(b.priority);
+    if (priorityDiff !== 0) return priorityDiff;
+    const statusDiff = supportStatusScore(a.status) - supportStatusScore(b.status);
+    if (statusDiff !== 0) return statusDiff;
+    return b.id - a.id;
+  });
+}
+
 function allergenLetter(value) {
   const normalized = value.toLowerCase();
   if (normalized.includes('gluten')) return 'G';
@@ -550,15 +848,39 @@ function renderAdminDashboard() {
   const supportList = document.getElementById('admin-support');
   const alertsList = document.getElementById('admin-alerts');
   const auditList = document.getElementById('admin-audit');
+  const supportFilters = document.querySelectorAll('.support-filter');
+  const supportCountsEl = document.getElementById('support-counts');
   if (!metrics || !approvals) return;
 
   const restaurants = uniqueRestaurants();
   const pending = loadAdminPending();
   const approved = loadAdminApproved();
+  syncPayoutsFromPaidOrders();
   const payouts = loadAdminPayouts();
-  const support = loadAdminSupport();
+  const support = sortSupportTickets(loadAdminSupport());
   const audit = loadAdminAudit();
   const restaurantOrders = loadRestaurantOrders();
+  const supportFiltered = support.filter(ticket => supportMatches(ticket));
+  const supportCounts = {
+    novos: support.filter(item => item.status === 'aberto').length,
+    alta: support.filter(item => item.priority === 'alta').length,
+    media: support.filter(item => item.priority === 'media').length,
+    baixa: support.filter(item => item.priority === 'baixa').length
+  };
+
+  supportFilters.forEach(button => {
+    button.classList.toggle('active', button.dataset.priority === state.adminSupportFilter);
+    const key = button.dataset.priority;
+    if (key && supportCounts[key] !== undefined) {
+      const label = key === 'novos'
+        ? `Novos (${supportCounts[key]})`
+        : `${key.charAt(0).toUpperCase() + key.slice(1)} (${supportCounts[key]})`;
+      button.textContent = label;
+    }
+  });
+  if (supportCountsEl) {
+    supportCountsEl.innerHTML = `<span>Tickets: ${support.length}</span><span>Novos: ${supportCounts.novos}</span>`;
+  }
 
   metrics.innerHTML = '';
   const metricItems = [
@@ -583,19 +905,17 @@ function renderAdminDashboard() {
     const row = document.createElement('div');
     row.className = 'list-item';
     const docClass = item.docStatus === 'verificado' ? 'success' : 'warn';
+    const photoCount = Array.isArray(item.photoUrls) ? item.photoUrls.length : (item.photos || 0);
     row.innerHTML = `
       <strong>${item.name}</strong>
       <div><small>${item.neighborhood}</small></div>
       <div class="admin-meta">
         <span class="admin-pill">${item.category || 'Categoria'}</span>
         <span class="admin-pill ${docClass}">Docs: ${item.docStatus || 'pendente'}</span>
-        <span class="admin-pill">Fotos: ${item.photos || 0}</span>
+        <span class="admin-pill">Fotos: ${photoCount}</span>
       </div>
-      <div><small>Horario: ${item.hours || '-'}</small></div>
-      <div><small>Contato: ${item.contact || '-'}</small></div>
-      <div><small>Doc: ${item.docNumber || '-'}</small></div>
-      <div><small>Recebido: ${item.createdAt || '-'}</small></div>
       <div class="admin-actions">
+        <button class="btn secondary admin-restaurant-view" data-id="${item.id}" data-source="pending">Ver detalhes</button>
         <button class="btn secondary admin-action" data-id="${item.id}" data-action="reject">Rejeitar</button>
         <button class="btn admin-action" data-id="${item.id}" data-action="approve">Aprovar</button>
       </div>
@@ -625,12 +945,13 @@ function renderAdminDashboard() {
       .forEach(item => {
       const row = document.createElement('div');
       row.className = 'list-item';
+      const category = item.category || 'Refeicoes';
       row.innerHTML = `
         <strong>${item.name}</strong>
         <div><small>${item.neighborhood}</small></div>
-        ${item.category ? `<div class="admin-meta"><span class="admin-pill">${item.category}</span><span class="admin-pill success">ativo</span></div>` : ''}
+        <div class="admin-meta"><span class="admin-pill">${category}</span><span class="admin-pill success">ativo</span></div>
         <div class="admin-actions">
-          <button class="btn secondary">Ver</button>
+          <button class="btn secondary admin-restaurant-view" data-id="${item.id}" data-source="approved">Ver</button>
           <button class="btn secondary">Pausar</button>
         </div>
       `;
@@ -654,7 +975,7 @@ function renderAdminDashboard() {
           <div><small>Total: ${formatBRL(order.total)}</small></div>
           <div><small>Status: Pago</small></div>
           <div class="admin-actions">
-            <button class="btn secondary">Detalhes</button>
+            <button class="btn secondary admin-order-view" data-order-id="${order.id}">Detalhes</button>
             <button class="btn secondary">Reembolso</button>
           </div>
         `;
@@ -665,16 +986,20 @@ function renderAdminDashboard() {
 
   if (payoutsList) {
     payoutsList.innerHTML = '';
-    const filtered = payouts.filter(item => adminMatchesSearch(`${item.restaurant}`, 'payouts'));
-    if (!filtered.length) {
-      payoutsList.innerHTML = '<p><small>Nenhum pagamento pendente.</small></p>';
+    if (!state.adminPayoutSearch) {
+      payoutsList.innerHTML = '<p><small>Use a busca para localizar pagamentos.</small></p>';
     } else {
-      filtered.forEach(item => {
+      const filtered = payouts.filter(item => payoutMatchesSearch(item));
+      if (!filtered.length) {
+        payoutsList.innerHTML = '<p><small>Nenhum pagamento encontrado.</small></p>';
+      } else {
+        filtered.forEach(item => {
         const row = document.createElement('div');
         row.className = 'list-item';
         const statusClass = item.status === 'pago' ? 'success' : 'warn';
         row.innerHTML = `
-          <strong>${item.restaurant}</strong>
+          <strong>Pedido #${item.orderId}</strong>
+          <div><small>${item.restaurant} - ${item.user}</small></div>
           <div><small>Repasse: ${formatBRL(item.amount)}</small></div>
           <div class="admin-row">
             <span class="admin-pill ${statusClass}">${item.status}</span>
@@ -687,18 +1012,21 @@ function renderAdminDashboard() {
           </div>
         `;
         payoutsList.appendChild(row);
-      });
+        });
+      }
     }
   }
 
   if (supportList) {
     supportList.innerHTML = '';
-    support
-      .filter(ticket => adminMatchesSearch(`${ticket.user} ${ticket.issue}`, 'support'))
-      .forEach(ticket => {
+    if (!supportFiltered.length) {
+      supportList.innerHTML = '<p><small>Nenhum ticket encontrado.</small></p>';
+    } else {
+      supportFiltered.forEach(ticket => {
       const row = document.createElement('div');
       row.className = 'list-item';
       const priorityClass = ticket.priority === 'alta' ? 'danger' : ticket.priority === 'media' ? 'warn' : 'success';
+      const isSelected = ticket.id === state.adminSelectedTicketId;
       row.innerHTML = `
         <strong>Ticket #${ticket.id}</strong>
         <div><small>${ticket.user}</small></div>
@@ -708,14 +1036,21 @@ function renderAdminDashboard() {
           <span class="admin-pill">${ticket.sla}</span>
           <span class="admin-pill">${ticket.status}</span>
         </div>
+        <select class="support-priority admin-support-priority" data-id="${ticket.id}">
+          <option value="alta" ${ticket.priority === 'alta' ? 'selected' : ''}>Alta</option>
+          <option value="media" ${ticket.priority === 'media' ? 'selected' : ''}>Media</option>
+          <option value="baixa" ${ticket.priority === 'baixa' ? 'selected' : ''}>Baixa</option>
+        </select>
         <textarea class="admin-note" id="support-note-${ticket.id}" placeholder="Notas internas">${ticket.note || ''}</textarea>
         <div class="admin-actions">
           <button class="btn secondary admin-support" data-id="${ticket.id}" data-action="save">Salvar nota</button>
           <button class="btn secondary admin-support" data-id="${ticket.id}" data-action="close">Encerrar</button>
+          <button class="btn ${isSelected ? '' : 'secondary'} admin-support-view" data-id="${ticket.id}">Ver detalhes</button>
         </div>
       `;
       supportList.appendChild(row);
-    });
+      });
+    }
   }
 
   if (alertsList) {
@@ -816,6 +1151,171 @@ function renderPaymentSummary() {
   `;
 }
 
+function renderAdminRestaurantModal(item, source) {
+  const container = document.getElementById('admin-restaurant-body');
+  if (!container || !item) return;
+  const documents = Array.isArray(item.documents) ? item.documents : [];
+  const photos = Array.isArray(item.photoUrls) ? item.photoUrls : [];
+  const photoNames = Array.isArray(item.photoNames) ? item.photoNames : [];
+  const docHtml = documents.length
+    ? documents.map(doc => `
+      <div class="admin-doc">
+        <span>${doc}</span>
+        <button class="btn secondary admin-doc-download" data-id="${item.id}" data-doc="${doc}">Baixar</button>
+      </div>
+    `).join('')
+    : '<div class="admin-doc">Sem documentos enviados</div>';
+  const photoHtml = photos.length
+    ? photos.map((url, index) => {
+        const label = photoNames[index] || `Foto ${index + 1}`;
+        return `
+          <div class="admin-doc">
+            <span>${label}</span>
+            <button class="btn secondary admin-photo-open" data-url="${url}">Abrir</button>
+          </div>
+        `;
+      }).join('')
+    : '<div class="admin-doc">Sem fotos enviadas</div>';
+  container.innerHTML = `
+    <div class="list-item">
+      <strong>${item.name}</strong>
+      <div><small>${item.neighborhood}</small></div>
+      <div class="admin-meta">
+        <span class="admin-pill">${item.category || 'Categoria'}</span>
+        <span class="admin-pill">${item.docNumber || '-'}</span>
+        <span class="admin-pill">${item.contact || '-'}</span>
+      </div>
+      <div><small>Horario: ${item.hours || '-'}</small></div>
+      <div><small>Recebido: ${item.createdAt || '-'}</small></div>
+    </div>
+    <div class="list-item">
+      <strong>Documentos</strong>
+      <div><small>Status dos documentos</small></div>
+      <select class="support-priority admin-doc-status" id="admin-doc-status">
+        <option value="pendente" ${item.docStatus === 'pendente' ? 'selected' : ''}>Pendente</option>
+        <option value="verificado" ${item.docStatus === 'verificado' ? 'selected' : ''}>Verificado</option>
+      </select>
+      <div class="admin-doc-list">${docHtml}</div>
+      <div class="admin-upload">
+        <label class="upload-label">
+          <input type="file" id="admin-doc-upload" multiple />
+          <span>Enviar documentos</span>
+        </label>
+      </div>
+    </div>
+    <div class="list-item">
+      <strong>Fotos do restaurante</strong>
+      <div class="admin-doc-list">${photoHtml}</div>
+      <div class="admin-upload">
+        <label class="upload-label">
+          <input type="file" id="admin-photo-upload" accept="image/*" multiple />
+          <span>Enviar fotos</span>
+        </label>
+      </div>
+    </div>
+  `;
+  const docInput = document.getElementById('admin-doc-upload');
+  const photoInput = document.getElementById('admin-photo-upload');
+  if (docInput) {
+    docInput.addEventListener('change', () => {
+      const list = loadAdminList(source);
+      const target = list.find(entry => entry.id === item.id);
+      if (!target) return;
+      const names = Array.from(docInput.files).map(file => file.name);
+      target.documents = Array.from(new Set([...(target.documents || []), ...names]));
+      saveAdminList(source, list);
+      addAuditEntry('Documentos enviados', target.name);
+      renderAdminRestaurantModal(target, source);
+      renderAdminDashboard();
+    });
+  }
+  const statusSelect = document.getElementById('admin-doc-status');
+  if (statusSelect) {
+    statusSelect.addEventListener('change', () => {
+      const list = loadAdminList(source);
+      const target = list.find(entry => entry.id === item.id);
+      if (!target) return;
+      target.docStatus = statusSelect.value;
+      saveAdminList(source, list);
+      addAuditEntry('Status de documentos atualizado', target.name);
+      renderAdminRestaurantModal(target, source);
+      renderAdminDashboard();
+    });
+  }
+  if (photoInput) {
+    photoInput.addEventListener('change', () => {
+      const list = loadAdminList(source);
+      const target = list.find(entry => entry.id === item.id);
+      if (!target) return;
+      const files = Array.from(photoInput.files);
+      const readers = files.map(file => new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      }));
+      Promise.all(readers).then(results => {
+        target.photoUrls = [...(target.photoUrls || []), ...results];
+        const names = files.map(file => file.name);
+        target.photoNames = [...(target.photoNames || []), ...names];
+        target.photos = target.photoUrls.length;
+        saveAdminList(source, list);
+        addAuditEntry('Fotos enviadas', target.name);
+        renderAdminRestaurantModal(target, source);
+        renderAdminDashboard();
+      });
+    });
+  }
+}
+
+function renderAdminOrderModal(order) {
+  const container = document.getElementById('admin-order-body');
+  if (!container || !order) return;
+  const itemsHtml = order.items.map(item => `
+    <div class="list-item">
+      <strong>${item.name}</strong>
+      <div><small>${item.restaurant}</small></div>
+      <div><small>Qtd: ${item.qty} - ${formatBRL(item.price * item.qty)}</small></div>
+    </div>
+  `).join('');
+  container.innerHTML = `
+    <div class="list-item">
+      <strong>Pedido #${order.id}</strong>
+      <div><small>Cliente: ${order.user || 'Cliente Demo'}</small></div>
+      <div><small>Pagamento: ${order.paymentMethod || '-'}</small></div>
+      <div><small>Hora: ${order.createdAt || '-'}</small></div>
+      <div><small>Retirada ate: ${order.pickupBy || '-'}</small></div>
+      <div><small>Total: ${formatBRL(order.total)}</small></div>
+    </div>
+    <div class="modal-list">${itemsHtml}</div>
+  `;
+}
+
+function renderSupportModal(ticket) {
+  const container = document.getElementById('support-modal-body');
+  if (!container || !ticket) return;
+  const history = Array.isArray(ticket.history) ? ticket.history : [];
+  const historyHtml = history.length
+    ? history.map(item => `<div>${item.time} - ${item.actor}: ${item.action}</div>`).join('')
+    : '<div>Sem historico.</div>';
+  container.innerHTML = `
+    <div class="list-item">
+      <strong>Ticket #${ticket.id}</strong>
+      <div><small>Aberto em: ${ticket.createdAt || '-'}</small></div>
+      <div><small>Cliente: ${ticket.user}</small></div>
+      <div><small>Responsavel: ${ticket.assigned || 'Nao definido'}</small></div>
+      <div><small>Status: ${ticket.status}</small></div>
+      <div><small>Assunto: ${ticket.issue}</small></div>
+      <div><small>Prioridade atual:</small></div>
+      <select class="support-priority admin-support-priority" data-id="${ticket.id}">
+        <option value="alta" ${ticket.priority === 'alta' ? 'selected' : ''}>Alta</option>
+        <option value="media" ${ticket.priority === 'media' ? 'selected' : ''}>Media</option>
+        <option value="baixa" ${ticket.priority === 'baixa' ? 'selected' : ''}>Baixa</option>
+      </select>
+      <div class="support-history">${historyHtml}</div>
+    </div>
+  `;
+}
+
 function setPaymentMethod(method) {
   state.paymentMethod = method;
   document.querySelectorAll('.method-tab').forEach(tab => {
@@ -841,7 +1341,7 @@ function closeOverlayModal(id) {
 }
 
 function closeAllOverlayModals() {
-  ['orders-modal', 'profile-modal', 'payment-modal', 'map-modal', 'login-modal', 'restaurant-confirm-modal', 'admin-register-modal'].forEach(closeOverlayModal);
+  ['orders-modal', 'profile-modal', 'payment-modal', 'map-modal', 'login-modal', 'restaurant-confirm-modal', 'admin-register-modal', 'support-modal', 'admin-restaurant-modal', 'admin-order-modal'].forEach(closeOverlayModal);
 }
 
 function setActiveNav(id) {
@@ -1130,7 +1630,10 @@ function createPaidOrder() {
     items: grouped,
     total,
     qrToken: token,
-    pickupBy: pickupLimit()
+    pickupBy: pickupLimit(),
+    createdAt: new Date().toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    paymentMethod: state.paymentMethod,
+    user: 'Cliente Demo'
   };
 }
 
@@ -1249,21 +1752,31 @@ document.querySelectorAll('.admin-tab').forEach(tab => {
   });
 });
 
-const adminSearchInput = document.getElementById('admin-search');
-if (adminSearchInput) {
-  adminSearchInput.addEventListener('input', event => {
-    state.adminSearch = event.target.value.trim().toLowerCase();
+const adminPayoutSearch = document.getElementById('admin-payout-search');
+if (adminPayoutSearch) {
+  adminPayoutSearch.addEventListener('input', event => {
+    state.adminPayoutSearch = event.target.value.trim().toLowerCase();
     renderAdminDashboard();
   });
 }
 
-const adminScopeSelect = document.getElementById('admin-scope');
-if (adminScopeSelect) {
-  adminScopeSelect.addEventListener('change', event => {
-    state.adminScope = event.target.value;
+const adminSupportSearch = document.getElementById('admin-support-search');
+if (adminSupportSearch) {
+  adminSupportSearch.addEventListener('input', event => {
+    state.adminSupportSearch = event.target.value.trim().toLowerCase();
     renderAdminDashboard();
   });
 }
+
+document.querySelectorAll('.support-filter').forEach(button => {
+  button.addEventListener('click', () => {
+    document.querySelectorAll('.support-filter').forEach(item => item.classList.remove('active'));
+    button.classList.add('active');
+    state.adminSupportFilter = button.dataset.priority || 'novos';
+    renderAdminDashboard();
+  });
+});
+
 
 document.querySelectorAll('.modal-close').forEach(button => {
   button.addEventListener('click', event => {
@@ -1272,7 +1785,7 @@ document.querySelectorAll('.modal-close').forEach(button => {
   });
 });
 
-['orders-modal', 'profile-modal', 'payment-modal', 'map-modal', 'login-modal', 'restaurant-confirm-modal', 'admin-register-modal'].forEach(id => {
+['orders-modal', 'profile-modal', 'payment-modal', 'map-modal', 'login-modal', 'restaurant-confirm-modal', 'admin-register-modal', 'support-modal', 'admin-restaurant-modal', 'admin-order-modal'].forEach(id => {
   const modal = document.getElementById(id);
   modal.addEventListener('click', event => {
     if (event.target.id === id) closeOverlayModal(id);
@@ -1346,6 +1859,7 @@ document.getElementById('confirm-payment').addEventListener('click', () => {
   const order = createPaidOrder();
   state.paidOrders.unshift(order);
   const restaurantOrders = loadRestaurantOrders();
+  const payouts = loadAdminPayouts();
   order.items.forEach(item => {
     const lineId = `${order.id}-${item.id}`;
     restaurantOrders.unshift({
@@ -1361,8 +1875,17 @@ document.getElementById('confirm-payment').addEventListener('click', () => {
         }
       ]
     });
+    payouts.unshift({
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      orderId: order.id,
+      restaurant: item.restaurant,
+      user: order.user || 'Cliente Demo',
+      amount: item.price * item.qty,
+      status: 'pendente'
+    });
   });
   saveRestaurantOrders(restaurantOrders);
+  saveAdminPayouts(payouts);
   state.cart = [];
   updateOrdersBadge();
   renderOrdersModal();
@@ -1488,13 +2011,42 @@ document.addEventListener('click', event => {
   const updatedPending = pending.filter(item => item.id !== id);
   saveAdminPending(updatedPending);
   if (action === 'approve') {
-    approved.unshift(target);
+    const approvedEntry = {
+      ...target,
+      docStatus: target.docStatus || 'verificado',
+      documents: Array.isArray(target.documents) ? target.documents : [],
+      photoUrls: Array.isArray(target.photoUrls) ? target.photoUrls : [],
+      createdAt: target.createdAt || 'Hoje'
+    };
+    approved.unshift(approvedEntry);
     saveAdminApproved(approved);
     addAuditEntry('Restaurante aprovado', target.name);
   } else {
     addAuditEntry('Restaurante rejeitado', target.name);
   }
   renderAdminDashboard();
+});
+
+document.addEventListener('click', event => {
+  const viewButton = event.target.closest('.admin-restaurant-view');
+  if (!viewButton) return;
+  const id = Number(viewButton.dataset.id);
+  const source = viewButton.dataset.source || 'pending';
+  const list = loadAdminList(source);
+  const target = list.find(item => item.id === id);
+  if (!target) return;
+  renderAdminRestaurantModal(target, source);
+  openOverlayModal('admin-restaurant-modal');
+});
+
+document.addEventListener('click', event => {
+  const orderButton = event.target.closest('.admin-order-view');
+  if (!orderButton) return;
+  const id = Number(orderButton.dataset.orderId);
+  const order = state.paidOrders.find(item => item.id === id);
+  if (!order) return;
+  renderAdminOrderModal(order);
+  openOverlayModal('admin-order-modal');
 });
 
 document.addEventListener('click', event => {
@@ -1529,6 +2081,78 @@ document.addEventListener('click', event => {
     saveAdminSupport(tickets);
     addAuditEntry('Ticket encerrado', `Ticket #${id}`);
   }
+  renderAdminDashboard();
+});
+
+document.addEventListener('click', event => {
+  const viewButton = event.target.closest('.admin-support-view');
+  if (!viewButton) return;
+  const id = Number(viewButton.dataset.id);
+  const tickets = loadAdminSupport();
+  const target = tickets.find(item => item.id === id);
+  if (!target) return;
+  if (target.status === 'aberto') {
+    target.status = 'em andamento';
+    target.history = Array.isArray(target.history) ? target.history : [];
+    target.history.unshift({
+      time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      actor: 'Suporte',
+      action: 'Atendimento iniciado'
+    });
+    saveAdminSupport(tickets);
+    addAuditEntry('Ticket em andamento', `Ticket #${id}`);
+  }
+  state.adminSelectedTicketId = id;
+  renderSupportModal(target);
+  openOverlayModal('support-modal');
+  renderAdminDashboard();
+});
+
+document.addEventListener('click', event => {
+  const downloadButton = event.target.closest('.admin-doc-download');
+  if (!downloadButton) return;
+  const docName = downloadButton.dataset.doc || 'documento.txt';
+  const id = Number(downloadButton.dataset.id);
+  const pending = loadAdminPending();
+  const approved = loadAdminApproved();
+  const target = pending.find(item => item.id === id) || approved.find(item => item.id === id);
+  const content = `Documento: ${docName}\nRestaurante: ${target ? target.name : 'Desconhecido'}`;
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = docName.replace(/\s+/g, '_');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+});
+
+document.addEventListener('click', event => {
+  const photoButton = event.target.closest('.admin-photo-open');
+  if (!photoButton) return;
+  const url = photoButton.dataset.url;
+  if (!url) return;
+  window.open(url, '_blank', 'noopener');
+});
+
+document.addEventListener('change', event => {
+  const select = event.target.closest('.admin-support-priority');
+  if (!select) return;
+  const id = Number(select.dataset.id);
+  const tickets = loadAdminSupport();
+  const target = tickets.find(item => item.id === id);
+  if (!target) return;
+  target.priority = select.value;
+  target.history = Array.isArray(target.history) ? target.history : [];
+  target.history.unshift({
+    time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    actor: 'Admin',
+    action: `Prioridade ajustada para ${select.value}`
+  });
+  saveAdminSupport(tickets);
+  addAuditEntry('Prioridade alterada', `Ticket #${id}`);
+  renderSupportModal(target);
   renderAdminDashboard();
 });
 
