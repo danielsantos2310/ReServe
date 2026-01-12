@@ -48,11 +48,12 @@
 
 const restaurantImages = [
   "image.png",
-  "image copy.png",
+  "image copy - Copy.png",
   "image copy 2.png",
   "image copy 3.png",
   "image copy 4.png"
 ];
+const shuffledRestaurantImages = shuffleArray(restaurantImages);
 
 const categoryList = ["Padaria", "Refeicoes", "Mercados", "Vegetariano", "Doces"];
 
@@ -758,9 +759,18 @@ function getRestaurantImageMap() {
   const map = new Map();
   const restaurants = uniqueRestaurants();
   restaurants.forEach((rest, index) => {
-    map.set(rest.name, restaurantImages[index] || "");
+    map.set(rest.name, shuffledRestaurantImages[index] || "");
   });
   return map;
+}
+
+function shuffleArray(list) {
+  const result = list.slice();
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
 }
 
 function updateOrdersBadge() {
